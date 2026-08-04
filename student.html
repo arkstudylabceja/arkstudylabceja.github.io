@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아이 강의실 | ARK STUDY LAB</title>
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <span id="userName"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="card wide" id="content">
+    <div class="loading">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const contentEl = document.getElementById('content');
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  const { data: profile, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !profile) {
+    contentEl.innerHTML = '<p>프로필을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  if (profile.role !== 'student') {
+    window.location.href = 'parent.html';
+    return;
+  }
+
+  document.getElementById('userName').textContent = profile.name + '님';
+
+  if (!profile.parent_email) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">⚠️</div>
+        <h2>연결된 학부모 계정이 없어요</h2>
+        <p>가입 시 입력한 학부모 이메일이 없습니다. 운영진에게 문의해주세요.</p>
+      </div>`;
+    return;
+  }
+
+  const { data: parentProfile, error: parentError } = await sb
+    .from('profiles')
+    .select('course_completed, name')
+    .eq('role', 'parent')
+    .eq('email', profile.parent_email)
+    .single();
+
+  if (parentError || !parentProfile) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🔍</div>
+        <h2>학부모 계정을 찾을 수 없어요</h2>
+        <p>입력하신 학부모 이메일(${profile.parent_email})로 가입된 학부모 계정이 아직 없어요. 학부모님이 먼저 회원가입을 해주셔야 합니다.</p>
+      </div>`;
+    return;
+  }
+
+  if (!parentProfile.course_completed) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🔒</div>
+        <h2>아직 강의가 열리지 않았어요</h2>
+        <p>학부모님(${parentProfile.name})이 자기주도학습 강의를 완료하시면 이 페이지에서 강의와 팀방이 자동으로 열려요. 학부모님께 먼저 강의 수강을 부탁드려주세요.</p>
+      </div>`;
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <span class="status-badge unlocked">✓ 강의가 열려있어요</span>
+    <h1>아이 자기주도학습 강의</h1>
+    <p class="sub">학부모님이 강의를 완료하셔서 이제 시작할 수 있어요!</p>
+
+    <div class="lesson-box">
+      <h3>1강. 나만의 공부 계획 세우기</h3>
+      <p>하루·일주일 단위로 스스로 공부 계획을 세우는 방법을 배웁니다.</p>
+    </div>
+    <div class="lesson-box">
+      <h3>2강. 계획을 실행하고 점검하기</h3>
+      <p>세운 계획을 실제로 지켜나가고, 스스로 점검하는 습관을 만듭니다.</p>
+    </div>
+    <div class="lesson-box">
+      <h3>🧑‍🤝‍🧑 팀방 (준비중)</h3>
+      <p>또래와 함께 공부 인증을 나누는 팀방 기능은 다음 단계에서 열릴 예정이에요.</p>
+    </div>
+  `;
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+init();
+</script>
+</body>
+</html>

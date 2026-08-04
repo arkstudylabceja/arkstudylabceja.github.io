@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 | ARK STUDY LAB</title>
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <a href="signup.html">회원가입</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="card">
+    <h1>로그인</h1>
+    <p class="sub">학부모·학생 계정으로 로그인해주세요.</p>
+
+    <div id="msg" class="msg"></div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label>이메일</label>
+        <input type="text" id="email" name="ark_email_field" required placeholder="example@email.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label>비밀번호 (글자가 그대로 보여요)</label>
+        <input type="text" id="password" name="ark_pw_field" required placeholder="비밀번호" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="hint" id="pwLen"></div>
+      </div>
+      <button type="submit" class="btn" id="submitBtn">로그인</button>
+    </form>
+
+    <div class="switch-link">계정이 없으신가요? <a href="signup.html">회원가입</a></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+function showMsg(text, type) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg show ' + type;
+}
+
+const pwField = document.getElementById('password');
+const pwLenEl = document.getElementById('pwLen');
+pwField.addEventListener('input', () => {
+  pwLenEl.textContent = '현재 입력된 글자 수: ' + pwField.value.length + '자';
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '로그인 중...';
+
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  console.log('[디버그] 보내는 이메일:', JSON.stringify(email));
+  console.log('[디버그] 보내는 비밀번호:', JSON.stringify(password), '길이:', password.length);
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showMsg('로그인 실패: ' + error.message, 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '로그인';
+    return;
+  }
+
+  const { data: profile, error: profileError } = await sb
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    showMsg('프로필 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '로그인';
+    return;
+  }
+
+  window.location.href = profile.role === 'parent' ? 'parent.html' : 'student.html';
+});
+</script>
+</body>
+</html>
