@@ -11,6 +11,7 @@
 <div class="topbar">
   <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
   <div class="top-actions">
+    <a href="settings.html">⚙️ 설정</a>
     <span id="userName"></span>
     <button id="logoutBtn">로그아웃</button>
   </div>
@@ -81,7 +82,12 @@ function render(profile) {
     <button class="btn" id="completeBtn" ${profile.course_completed ? 'disabled' : ''}>
       ${profile.course_completed ? '수강 완료됨' : '수강 완료 처리하기'}
     </button>
+
+    <h2 style="margin-top:36px;font-size:18px;color:var(--navy-deep);margin-bottom:16px;">📂 자녀 학습 기록</h2>
+    <div id="childLogs"><div class="loading">불러오는 중...</div></div>
   `;
+
+  loadChildLogs();
 
   const completeBtn = document.getElementById('completeBtn');
   if (!profile.course_completed) {
@@ -102,6 +108,42 @@ function render(profile) {
       render(profile);
     });
   }
+}
+
+async function loadChildLogs() {
+  const el = document.getElementById('childLogs');
+  const { data: logs, error } = await sb
+    .from('study_logs')
+    .select('id, study_date, subject, content, minutes_spent, profiles(name)')
+    .order('study_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (error) {
+    el.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
+    return;
+  }
+
+  if (!logs || logs.length === 0) {
+    el.innerHTML = '<p class="empty-note">아직 자녀가 남긴 학습 기록이 없어요.</p>';
+    return;
+  }
+
+  el.innerHTML = logs.map(log => `
+    <div class="log-entry">
+      <div class="log-main">
+        <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}${log.profiles ? ' · ' + escapeHtml(log.profiles.name) : ''}</div>
+        <div class="log-content">${escapeHtml(log.content)}</div>
+        ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {

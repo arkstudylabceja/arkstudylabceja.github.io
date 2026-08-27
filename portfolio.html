@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습 포트폴리오 | ARK STUDY LAB</title>
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <a href="student.html">강의실로</a>
+    <span id="userName"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="page-wrap top">
+  <div class="card wide" id="content">
+    <div class="loading">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const contentEl = document.getElementById('content');
+let myId = null;
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  const { data: profile, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !profile) {
+    contentEl.innerHTML = '<p>프로필을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  if (profile.role !== 'student') {
+    window.location.href = profile.role === 'parent' ? 'parent.html' : 'admin.html';
+    return;
+  }
+
+  myId = profile.id;
+  document.getElementById('userName').textContent = profile.name + '님';
+
+  renderShell();
+  await loadLogs();
+}
+
+function renderShell() {
+  contentEl.innerHTML = `
+    <h1>📂 내 학습 포트폴리오</h1>
+    <p class="sub">오늘 공부한 내용을 기록하고, 꾸준히 쌓아가 보세요.</p>
+
+    <div id="msg" class="msg"></div>
+
+    <form id="logForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label>날짜</label>
+          <input type="date" id="studyDate" required>
+        </div>
+        <div class="form-group">
+          <label>과목 (선택)</label>
+          <input type="text" id="subject" placeholder="예: 수학, 영어">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>공부한 내용</label>
+        <textarea id="content" required placeholder="오늘 무엇을 공부했는지 적어보세요"></textarea>
+      </div>
+      <div class="form-group">
+        <label>공부 시간(분, 선택)</label>
+        <input type="number" id="minutes" min="0" placeholder="예: 60">
+      </div>
+      <button type="submit" class="btn" id="submitBtn">기록 남기기</button>
+    </form>
+
+    <h2 style="margin-top:36px;font-size:18px;color:var(--navy-deep);margin-bottom:16px;">지난 기록</h2>
+    <div id="logList"><div class="loading">불러오는 중...</div></div>
+  `;
+
+  document.getElementById('studyDate').valueAsDate = new Date();
+
+  document.getElementById('logForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '저장 중...';
+
+    const study_date = document.getElementById('studyDate').value;
+    const subject = document.getElementById('subject').value.trim();
+    const content = document.getElementById('content').value.trim();
+    const minutesRaw = document.getElementById('minutes').value;
+    const minutes_spent = minutesRaw ? parseInt(minutesRaw, 10) : null;
+
+    const { error } = await sb.from('study_logs').insert({
+      student_id: myId,
+      study_date,
+      subject: subject || null,
+      content,
+      minutes_spent
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '기록 남기기';
+
+    if (error) {
+      showMsg('저장 실패: ' + error.message, 'error');
+      return;
+    }
+
+    showMsg('기록이 저장되었습니다.', 'success');
+    document.getElementById('logForm').reset();
+    document.getElementById('studyDate').valueAsDate = new Date();
+    await loadLogs();
+  });
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg show ' + type;
+}
+
+async function loadLogs() {
+  const listEl = document.getElementById('logList');
+  const { data: logs, error } = await sb
+    .from('study_logs')
+    .select('*')
+    .eq('student_id', myId)
+    .order('study_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    listEl.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
+    return;
+  }
+
+  if (!logs || logs.length === 0) {
+    listEl.innerHTML = '<p class="empty-note">아직 기록이 없어요. 위에서 첫 기록을 남겨보세요!</p>';
+    return;
+  }
+
+  listEl.innerHTML = logs.map(log => `
+    <div class="log-entry" data-id="${log.id}">
+      <div class="log-main">
+        <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}</div>
+        <div class="log-content">${escapeHtml(log.content)}</div>
+        ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+      </div>
+      <button class="btn-small" data-delete="${log.id}">삭제</button>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 기록을 삭제할까요?')) return;
+      const id = btn.getAttribute('data-delete');
+      const { error: delError } = await sb.from('study_logs').delete().eq('id', id);
+      if (delError) {
+        alert('삭제 실패: ' + delError.message);
+        return;
+      }
+      await loadLogs();
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+init();
+</script>
+</body>
+</html>

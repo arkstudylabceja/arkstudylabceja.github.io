@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 | ARK STUDY LAB</title>
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <a href="admin-teams.html">🧑‍🤝‍🧑 팀 관리</a>
+    <a href="settings.html">⚙️ 설정</a>
+    <span id="userName"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="page-wrap top">
+  <div class="card xwide" id="content">
+    <div class="loading">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const contentEl = document.getElementById('content');
+let allProfiles = [];
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  const { data: profile, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !profile) {
+    contentEl.innerHTML = '<p>프로필을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  if (profile.role !== 'admin') {
+    window.location.href = profile.role === 'parent' ? 'parent.html' : 'student.html';
+    return;
+  }
+
+  document.getElementById('userName').textContent = profile.name + '님 (관리자)';
+
+  const { data: profiles, error: listError } = await sb
+    .from('profiles')
+    .select('*');
+
+  if (listError) {
+    contentEl.innerHTML = `<p>학생·학부모 목록을 불러오지 못했습니다: ${listError.message}</p>`;
+    return;
+  }
+
+  allProfiles = profiles.sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name));
+  render(allProfiles);
+}
+
+function roleLabel(role) {
+  if (role === 'admin') return '관리자';
+  if (role === 'parent') return '학부모';
+  return '학생';
+}
+
+function noteFor(p) {
+  if (p.role === 'parent') {
+    return p.course_completed
+      ? '<span class="status-badge unlocked" style="margin:0;">✓ 수강 완료</span>'
+      : '<span class="status-badge locked" style="margin:0;">● 미완료</span>';
+  }
+  if (p.role === 'student') {
+    return p.parent_email
+      ? `학부모: ${p.parent_email}`
+      : '<span style="color:var(--red);">학부모 연동 없음</span>';
+  }
+  return '-';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderTable(list) {
+  if (list.length === 0) {
+    return '<p style="color:var(--muted);padding:24px 0;">검색 결과가 없습니다.</p>';
+  }
+  const rows = list.map(p => `
+    <tr>
+      <td>${p.name || '-'}</td>
+      <td>${p.email || '-'}</td>
+      <td><span class="role-badge ${p.role}">${roleLabel(p.role)}</span></td>
+      <td>${noteFor(p)}</td>
+      <td>${p.role === 'student' ? `<button class="btn-small" data-toggle-logs="${p.id}">포트폴리오 보기</button>` : '-'}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr><th>이름</th><th>이메일</th><th>역할</th><th>비고</th><th>학습 기록</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function toggleLogs(studentId, btn) {
+  const existing = document.getElementById('logs-row-' + studentId);
+  if (existing) {
+    existing.remove();
+    btn.textContent = '포트폴리오 보기';
+    return;
+  }
+
+  document.querySelectorAll('[data-toggle-logs]').forEach(b => {
+    const rowId = 'logs-row-' + b.getAttribute('data-toggle-logs');
+    const openRow = document.getElementById(rowId);
+    if (openRow) openRow.remove();
+    b.textContent = '포트폴리오 보기';
+  });
+
+  btn.textContent = '불러오는 중...';
+
+  const { data: logs, error } = await sb
+    .from('study_logs')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('study_date', { ascending: false })
+    .limit(10);
+
+  btn.textContent = '포트폴리오 닫기';
+
+  const tr = document.createElement('tr');
+  tr.id = 'logs-row-' + studentId;
+  const td = document.createElement('td');
+  td.colSpan = 5;
+  td.style.background = '#fbfbfd';
+
+  if (error) {
+    td.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
+  } else if (!logs || logs.length === 0) {
+    td.innerHTML = '<p class="empty-note">아직 학습 기록이 없어요.</p>';
+  } else {
+    td.innerHTML = logs.map(log => `
+      <div class="log-entry" style="margin-bottom:8px;">
+        <div class="log-main">
+          <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}</div>
+          <div class="log-content">${escapeHtml(log.content)}</div>
+          ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  tr.appendChild(td);
+  btn.closest('tr').after(tr);
+}
+
+function bindTableEvents() {
+  document.querySelectorAll('[data-toggle-logs]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleLogs(btn.getAttribute('data-toggle-logs'), btn);
+    });
+  });
+}
+
+function render(list) {
+  contentEl.innerHTML = `
+    <h1>학생·학부모 관리</h1>
+    <p class="sub">가입된 전체 계정 목록입니다.</p>
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="이름 또는 이메일로 검색">
+      <span class="count" id="countLabel"></span>
+    </div>
+    <div id="tableWrap">${renderTable(list)}</div>
+  `;
+
+  document.getElementById('countLabel').textContent = `총 ${list.length}명`;
+  bindTableEvents();
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const filtered = allProfiles.filter(p =>
+      (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q)
+    );
+    document.getElementById('tableWrap').innerHTML = renderTable(filtered);
+    document.getElementById('countLabel').textContent = `총 ${filtered.length}명`;
+    bindTableEvents();
+  });
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+init();
+</script>
+</body>
+</html>
