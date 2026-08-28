@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /login.html
+Disallow: /signup.html
+Disallow: /parent.html
+Disallow: /student.html
+Disallow: /admin.html
+Disallow: /admin-teams.html
+Disallow: /portfolio.html
+Disallow: /team.html
+Disallow: /settings.html
+Disallow: /reset-password.html
+Disallow: /thanks.html
+Disallow: /supabase/
+Disallow: /.claude/
+
+Sitemap: https://arkstudylabceja.github.io/sitemap.xml
