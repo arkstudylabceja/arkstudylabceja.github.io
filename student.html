@@ -11,7 +11,7 @@
 <div class="topbar">
   <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
   <div class="top-actions">
-    <a href="portfolio.html">📂 내 포트폴리오</a>
+    <a href="portfolio.html">📂 내 개인 자료실</a>
     <a href="settings.html">⚙️ 설정</a>
     <span id="userName"></span>
     <button id="logoutBtn">로그아웃</button>
@@ -83,7 +83,7 @@ async function init() {
       <div class="locked-box">
         <div class="icon">🔒</div>
         <h2>아직 강의가 열리지 않았어요</h2>
-        <p>학부모님(${parentStatus.parent_name})이 자기주도학습 강의를 완료하시면 이 페이지에서 강의와 팀방이 자동으로 열려요. 학부모님께 먼저 강의 수강을 부탁드려주세요.</p>
+        <p>학부모님(${parentStatus.parent_name})이 자기주도학습 강의를 완료하시면 이 페이지에서 강의와 학습 인증방이 자동으로 열려요. 학부모님께 먼저 강의 수강을 부탁드려주세요.</p>
       </div>`;
     return;
   }
@@ -102,11 +102,11 @@ async function init() {
       <p>세운 계획을 실제로 지켜나가고, 스스로 점검하는 습관을 만듭니다.</p>
     </div>
     <div class="lesson-box" id="teamBox">
-      <h3>🧑‍🤝‍🧑 팀방</h3>
+      <h3>🧑‍🤝‍🧑 학습 인증방</h3>
       <p>확인하는 중...</p>
     </div>
 
-    <a href="portfolio.html" class="btn" style="display:block;text-align:center;margin-top:8px;">📂 내 학습 포트폴리오 보러가기</a>
+    <a href="portfolio.html" class="btn" style="display:block;text-align:center;margin-top:8px;">📂 내 개인 자료실 보러가기</a>
   `;
 
   loadTeamBox(profile.id);
@@ -122,7 +122,7 @@ async function loadTeamBox(myId) {
 
   if (error || !membership) {
     teamBox.innerHTML = `
-      <h3>🧑‍🤝‍🧑 팀방</h3>
+      <h3>🧑‍🤝‍🧑 학습 인증방</h3>
       <p>아직 배정된 팀이 없어요. 관리자가 배정하면 여기에서 팀원들과 공부 기록을 나눌 수 있어요.</p>
     `;
     return;
@@ -131,7 +131,7 @@ async function loadTeamBox(myId) {
   teamBox.innerHTML = `
     <h3>🧑‍🤝‍🧑 ${membership.teams.name}</h3>
     <p>팀원들과 함께 공부 기록을 나눠보세요.</p>
-    <a href="team.html" class="btn" style="display:block;text-align:center;width:auto;padding:10px 20px;margin-top:8px;">팀방 가기</a>
+    <a href="team.html" class="btn" style="display:block;text-align:center;width:auto;padding:10px 20px;margin-top:8px;">학습 인증방 가기</a>
   `;
 }
 

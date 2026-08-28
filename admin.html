@@ -104,7 +104,7 @@ function renderTable(list) {
       <td>${p.email || '-'}</td>
       <td><span class="role-badge ${p.role}">${roleLabel(p.role)}</span></td>
       <td>${noteFor(p)}</td>
-      <td>${p.role === 'student' ? `<button class="btn-small" data-toggle-logs="${p.id}">포트폴리오 보기</button>` : '-'}</td>
+      <td>${p.role === 'student' ? `<button class="btn-small" data-toggle-logs="${p.id}">개인 자료실 보기</button>` : '-'}</td>
     </tr>
   `).join('');
 
@@ -124,7 +124,7 @@ async function toggleLogs(studentId, btn) {
   const existing = document.getElementById('logs-row-' + studentId);
   if (existing) {
     existing.remove();
-    btn.textContent = '포트폴리오 보기';
+    btn.textContent = '개인 자료실 보기';
     return;
   }
 
@@ -132,7 +132,7 @@ async function toggleLogs(studentId, btn) {
     const rowId = 'logs-row-' + b.getAttribute('data-toggle-logs');
     const openRow = document.getElementById(rowId);
     if (openRow) openRow.remove();
-    b.textContent = '포트폴리오 보기';
+    b.textContent = '개인 자료실 보기';
   });
 
   btn.textContent = '불러오는 중...';
@@ -144,7 +144,7 @@ async function toggleLogs(studentId, btn) {
     .order('study_date', { ascending: false })
     .limit(10);
 
-  btn.textContent = '포트폴리오 닫기';
+  btn.textContent = '개인 자료실 닫기';
 
   const tr = document.createElement('tr');
   tr.id = 'logs-row-' + studentId;

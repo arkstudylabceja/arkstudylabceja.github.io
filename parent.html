@@ -58,12 +58,12 @@ async function init() {
 
 function render(profile) {
   const badge = profile.course_completed
-    ? '<span class="status-badge unlocked">✓ 수강 완료 — 자녀 강의·팀방이 열려있어요</span>'
-    : '<span class="status-badge locked">● 미완료 — 아직 자녀 강의·팀방이 잠겨있어요</span>';
+    ? '<span class="status-badge unlocked">✓ 수강 완료 — 자녀 강의·학습 인증방이 열려있어요</span>'
+    : '<span class="status-badge locked">● 미완료 — 아직 자녀 강의·학습 인증방이 잠겨있어요</span>';
 
   contentEl.innerHTML = `
     <h1>학부모 자기주도학습 강의</h1>
-    <p class="sub">이 강의를 완료하시면 자녀의 자기주도학습 강의와 팀방이 열립니다.</p>
+    <p class="sub">이 강의를 완료하시면 자녀의 자기주도학습 강의와 학습 인증방이 열립니다.</p>
     ${badge}
 
     <div class="lesson-box">
