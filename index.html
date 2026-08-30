@@ -181,6 +181,19 @@
   }
   .road-card h3{font-size:15.5px;font-weight:800;color:var(--navy-deep);margin:6px 0 8px;}
   .road-card p{font-size:13.3px;color:var(--muted);}
+  .road-card.active{border-style:solid;border-color:#d8c783;box-shadow:0 10px 24px rgba(18,32,67,.06);}
+  .road-card.active .road-badge{background:#fff3bf;color:#735c00;}
+  .road-link{
+    display:inline-flex;align-items:center;justify-content:center;margin-top:16px;
+    padding:9px 14px;border-radius:8px;background:var(--navy-deep);color:var(--white);
+    font-size:12.5px;font-weight:800;
+  }
+  .road-link:hover{background:var(--navy);}
+  .system-note{
+    margin-top:24px;padding:18px 20px;border-radius:12px;background:#fffdf4;
+    border:1px solid #eadb9c;color:var(--text);font-size:13.5px;text-align:center;
+  }
+  .legacy-roadmap{display:none;}
 
   /* APPLY FORM */
   .apply-wrap{
@@ -371,6 +384,47 @@
 </section>
 
 <section class="section alt" id="roadmap">
+  <div class="container">
+    <div class="sec-head">
+      <span class="tag">Student System</span>
+      <h2>ARK 학생 학습관리 시스템</h2>
+      <p>학생의 공부 기록부터 인증방 활동, 학부모 확인까지 한곳에서 이어집니다.</p>
+    </div>
+    <div class="road-grid">
+      <div class="road-card active">
+        <span class="road-badge">운영 중</span>
+        <h3>학생 개인 자료실</h3>
+        <p>매일 공부한 내용과 과목, 공부 시간을 기록하고 나만의 학습 자료를 쌓습니다.</p>
+        <a class="road-link" href="login.html" aria-label="로그인하고 학생 개인 자료실 이용하기">로그인하고 시작하기</a>
+      </div>
+      <div class="road-card active">
+        <span class="road-badge">운영 중</span>
+        <h3>인증방</h3>
+        <p>함께 공부하는 학생들이 오늘의 공부를 올리고 서로의 꾸준함을 확인합니다.</p>
+        <a class="road-link" href="login.html" aria-label="로그인하고 ARK 인증방 이용하기">인증방 들어가기</a>
+      </div>
+      <div class="road-card">
+        <span class="road-badge">준비 중</span>
+        <h3>강의 자료실</h3>
+        <p>강의 자료를 업로드하고 학생별로 필요한 자료를 편리하게 나누는 공간입니다.</p>
+      </div>
+      <div class="road-card">
+        <span class="road-badge">준비 중</span>
+        <h3>실시간 상담 채팅</h3>
+        <p>홈페이지에서 상담 문의를 주고받을 수 있는 채팅 기능을 준비하고 있습니다.</p>
+      </div>
+      <div class="road-card active">
+        <span class="road-badge">운영 중</span>
+        <h3>학생·학부모 관리</h3>
+        <p>학생의 학습 기록과 강의 이용 상태를 계정별 화면에서 확인하고 관리합니다.</p>
+        <a class="road-link" href="login.html" aria-label="ARK STUDY LAB 학생 학부모 로그인">계정으로 확인하기</a>
+      </div>
+    </div>
+    <p class="system-note">처음 이용하나요? 회원가입 후 학생 또는 학부모 계정을 선택하면 알맞은 화면으로 연결됩니다.</p>
+  </div>
+</section>
+
+<section class="section alt legacy-roadmap" id="roadmap-legacy" aria-hidden="true">
   <div class="container">
     <div class="sec-head">
       <span class="tag">Coming Soon</span>
