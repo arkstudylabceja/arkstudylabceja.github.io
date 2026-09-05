@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>팀 관리 | ARK STUDY LAB</title>
+<title>인증방 관리 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="app-style.css">
 </head>
@@ -96,26 +96,26 @@ function render() {
   const assignedIds = new Set(Object.values(membersByTeam).flat().map(m => m.student_id));
 
   contentEl.innerHTML = `
-    <h1>🧑‍🤝‍🧑 팀 관리</h1>
-    <p class="sub">학생들을 팀으로 묶어 함께 공부 기록을 나누게 할 수 있어요.</p>
+    <h1>🧑‍🤝‍🧑 인증방 관리</h1>
+    <p class="sub">학생들을 인증방에 배정해 함께 공부 기록을 나누게 할 수 있어요.</p>
 
     <div id="msg" class="msg"></div>
 
     <form id="newTeamForm" style="margin-bottom:32px;">
       <div class="form-row">
         <div class="form-group">
-          <label>팀 이름</label>
-          <input type="text" id="teamName" required placeholder="예: 1팀">
+          <label>인증방 이름</label>
+          <input type="text" id="teamName" required placeholder="예: 중등 수학 인증방">
         </div>
         <div class="form-group">
           <label>설명 (선택)</label>
           <input type="text" id="teamDesc" placeholder="예: 중2 수학 스터디">
         </div>
       </div>
-      <button type="submit" class="btn" id="createBtn" style="width:auto;padding:12px 24px;">+ 새 팀 만들기</button>
+      <button type="submit" class="btn" id="createBtn" style="width:auto;padding:12px 24px;">+ 새 인증방 만들기</button>
     </form>
 
-    <div id="teamsWrap">${teams.map(t => renderTeamCard(t, assignedIds)).join('') || '<p class="empty-note">아직 만든 팀이 없어요.</p>'}</div>
+    <div id="teamsWrap">${teams.map(t => renderTeamCard(t, assignedIds)).join('') || '<p class="empty-note">아직 만든 인증방이 없어요.</p>'}</div>
   `;
 
   document.getElementById('newTeamForm').addEventListener('submit', async (e) => {
@@ -134,10 +134,10 @@ function render() {
     });
 
     createBtn.disabled = false;
-    createBtn.textContent = '+ 새 팀 만들기';
+    createBtn.textContent = '+ 새 인증방 만들기';
 
     if (error) {
-      showMsg('팀 생성 실패: ' + error.message, 'error');
+      showMsg('인증방 생성 실패: ' + error.message, 'error');
       return;
     }
 
@@ -152,7 +152,7 @@ function renderTeamCard(team, assignedIds) {
   const members = membersByTeam[team.id] || [];
   const memberOptionsHtml = students
     .filter(s => !members.some(m => m.student_id === s.id))
-    .map(s => `<option value="${s.id}">${escapeHtml(s.name)}${assignedIds.has(s.id) ? ' (다른 팀 소속)' : ''}</option>`)
+    .map(s => `<option value="${s.id}">${escapeHtml(s.name)}${assignedIds.has(s.id) ? ' (다른 인증방 소속)' : ''}</option>`)
     .join('');
 
   return `
@@ -176,7 +176,7 @@ function renderTeamCard(team, assignedIds) {
           <option value="">학생 선택...</option>
           ${memberOptionsHtml}
         </select>
-        <button class="btn-small" data-add-btn="${team.id}">팀에 추가</button>
+        <button class="btn-small" data-add-btn="${team.id}">인증방에 추가</button>
       </div>
     </div>
   `;
@@ -185,7 +185,7 @@ function renderTeamCard(team, assignedIds) {
 function bindTeamCardEvents() {
   document.querySelectorAll('[data-remove-member]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('이 학생을 팀에서 제외할까요?')) return;
+      if (!confirm('이 학생을 인증방에서 제외할까요?')) return;
       const id = btn.getAttribute('data-remove-member');
       const { error } = await sb.from('team_members').delete().eq('id', id);
       if (error) {
