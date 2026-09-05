@@ -122,7 +122,9 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     return;
   }
 
-  showMsg('가입이 완료되었습니다. 이메일로 전송된 인증 링크를 클릭한 후 로그인해주세요.', 'success');
+  showMsg(role === 'student'
+    ? '학생 가입이 완료되었습니다. 이메일 인증 후 연결된 학부모의 승인을 받으면 강의실을 이용할 수 있어요.'
+    : '가입이 완료되었습니다. 이메일로 전송된 인증 링크를 클릭한 후 로그인해주세요.', 'success');
   document.getElementById('signupForm').reset();
   submitBtn.disabled = false;
   submitBtn.textContent = '가입하기';

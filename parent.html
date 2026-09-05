@@ -68,6 +68,12 @@ function render(profile) {
     <p class="sub">이 강의를 완료하시면 자녀의 자기주도학습 강의와 학습 인증방이 열립니다.</p>
     ${badge}
 
+    <section class="lesson-box" id="childConsentBox">
+      <h3>🛡️ 자녀 계정 승인</h3>
+      <p>연결된 자녀 계정을 확인하고 개인정보 처리와 서비스 이용을 승인해주세요.</p>
+      <div class="loading">확인하는 중...</div>
+    </section>
+
     <div class="lesson-box">
       <h3>1강. 자기주도학습이란 무엇인가</h3>
       <p>아이가 스스로 계획하고 실행하고 점검하는 힘을 기르기 위해, 부모가 먼저 알아야 할 기본 원리를 다룹니다.</p>
@@ -90,6 +96,7 @@ function render(profile) {
   `;
 
   loadChildLogs();
+  loadChildConsent();
 
   const completeBtn = document.getElementById('completeBtn');
   if (!profile.course_completed) {
@@ -110,6 +117,49 @@ function render(profile) {
       render(profile);
     });
   }
+}
+
+async function loadChildConsent() {
+  const box = document.getElementById('childConsentBox');
+  const { data: children, error } = await sb.rpc('get_my_children_consent');
+  if (error) {
+    box.innerHTML = `<h3>🛡️ 자녀 계정 승인</h3><p class="empty-note">자녀 승인 정보를 불러오지 못했습니다: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!children || children.length === 0) {
+    box.innerHTML = '<h3>🛡️ 자녀 계정 승인</h3><p class="empty-note">현재 연결된 자녀 계정이 없어요.</p>';
+    return;
+  }
+
+  box.innerHTML = `<h3>🛡️ 자녀 계정 승인</h3>${children.map(child => `
+    <div style="padding:14px 0;border-bottom:1px solid #e2e5ee;">
+      <strong>${escapeHtml(child.child_name)}</strong>
+      <div class="hint">${escapeHtml(child.child_email)}</div>
+      ${child.guardian_consent_at
+        ? `<span class="status-badge unlocked" style="margin-top:8px;">✓ 학부모 승인 완료 · ${new Date(child.guardian_consent_at).toLocaleDateString('ko-KR')}</span>`
+        : `<label style="display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:13px;"><input type="checkbox" data-consent-check="${child.child_id}" style="width:auto;margin-top:3px;"> <span><a href="privacy.html" target="_blank" rel="noopener" style="text-decoration:underline;">개인정보처리방침</a>과 <a href="terms.html" target="_blank" rel="noopener" style="text-decoration:underline;">서비스 이용안내</a>를 확인했으며, 법정대리인으로서 자녀의 서비스 이용에 동의합니다.</span></label><button type="button" class="btn-small" data-approve-child="${child.child_id}">자녀 계정 승인하기</button>`}
+    </div>`).join('')}`;
+
+  box.querySelectorAll('[data-approve-child]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const childId = btn.getAttribute('data-approve-child');
+      const check = box.querySelector(`[data-consent-check="${childId}"]`);
+      if (!check.checked) {
+        alert('개인정보처리방침과 서비스 이용안내 동의를 확인해주세요.');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '승인 중...';
+      const { error: approveError } = await sb.rpc('approve_child_consent', { target_child_id: childId });
+      if (approveError) {
+        alert('승인 실패: ' + approveError.message);
+        btn.disabled = false;
+        btn.textContent = '자녀 계정 승인하기';
+        return;
+      }
+      await loadChildConsent();
+    });
+  });
 }
 
 async function loadChildLogs() {

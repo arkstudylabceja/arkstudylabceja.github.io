@@ -55,6 +55,16 @@ async function init() {
 
   document.getElementById('userName').textContent = profile.name + '님';
 
+  if (!profile.guardian_consent_at) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🛡️</div>
+        <h2>학부모 승인을 기다리고 있어요</h2>
+        <p>연결된 학부모가 학부모 계정으로 로그인해 개인정보 처리와 서비스 이용에 동의하면 강의실과 인증방이 열립니다.</p>
+      </div>`;
+    return;
+  }
+
   if (!profile.parent_email) {
     contentEl.innerHTML = `
       <div class="locked-box">
