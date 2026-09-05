@@ -48,6 +48,12 @@ async function init() {
     return;
   }
 
+  if (profile.account_status === 'suspended') {
+    await sb.auth.signOut();
+    window.location.href = 'login.html?suspended=1';
+    return;
+  }
+
   if (profile.role !== 'student') {
     window.location.href = 'parent.html';
     return;

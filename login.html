@@ -69,12 +69,20 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
   const { data: profile, error: profileError } = await sb
     .from('profiles')
-    .select('role')
+    .select('role, account_status')
     .eq('id', data.user.id)
     .single();
 
   if (profileError || !profile) {
     showMsg('프로필 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '로그인';
+    return;
+  }
+
+  if (profile.account_status === 'suspended') {
+    await sb.auth.signOut();
+    showMsg('이 계정은 현재 이용이 정지되어 있습니다. 관리자에게 문의해주세요.', 'error');
     submitBtn.disabled = false;
     submitBtn.textContent = '로그인';
     return;

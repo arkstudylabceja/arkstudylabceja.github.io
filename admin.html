@@ -30,6 +30,7 @@
 <script>
 const contentEl = document.getElementById('content');
 let allProfiles = [];
+let deletionRequests = [];
 const IMAGE_BUCKET = 'study-log-images';
 
 async function init() {
@@ -55,6 +56,12 @@ async function init() {
     return;
   }
 
+  if (profile.account_status === 'suspended') {
+    await sb.auth.signOut();
+    window.location.href = 'login.html?suspended=1';
+    return;
+  }
+
   document.getElementById('userName').textContent = profile.name + '님 (관리자)';
 
   const { data: profiles, error: listError } = await sb
@@ -67,6 +74,12 @@ async function init() {
   }
 
   allProfiles = profiles.sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name));
+  const { data: requests } = await sb
+    .from('account_deletion_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .order('requested_at', { ascending: false });
+  deletionRequests = requests || [];
   render(allProfiles);
 }
 
@@ -107,6 +120,10 @@ function renderTable(list) {
       <td><span class="role-badge ${p.role}">${roleLabel(p.role)}</span></td>
       <td>${noteFor(p)}</td>
       <td>${p.role === 'student' ? `<button class="btn-small" data-toggle-logs="${p.id}">개인 자료실 보기</button>` : '-'}</td>
+      <td>
+        <span class="status-badge ${p.account_status === 'suspended' ? 'locked' : 'unlocked'}" style="margin:0;">${p.account_status === 'suspended' ? '이용 정지' : '이용 중'}</span>
+        ${p.role !== 'admin' ? `<button class="btn-small" style="margin-top:6px;" data-toggle-status="${p.id}" data-current-status="${p.account_status || 'active'}">${p.account_status === 'suspended' ? '다시 활성화' : '이용 정지'}</button>` : ''}
+      </td>
     </tr>
   `).join('');
 
@@ -114,7 +131,7 @@ function renderTable(list) {
     <div class="table-scroll">
       <table class="data-table">
         <thead>
-          <tr><th>이름</th><th>이메일</th><th>역할</th><th>비고</th><th>학습 기록</th></tr>
+          <tr><th>이름</th><th>이메일</th><th>역할</th><th>비고</th><th>학습 기록</th><th>계정 상태</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -151,7 +168,7 @@ async function toggleLogs(studentId, btn) {
   const tr = document.createElement('tr');
   tr.id = 'logs-row-' + studentId;
   const td = document.createElement('td');
-  td.colSpan = 5;
+  td.colSpan = 6;
   td.style.background = '#fbfbfd';
 
   if (error) {
@@ -190,6 +207,56 @@ function bindTableEvents() {
       toggleLogs(btn.getAttribute('data-toggle-logs'), btn);
     });
   });
+  document.querySelectorAll('[data-toggle-status]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const userId = btn.getAttribute('data-toggle-status');
+      const current = btn.getAttribute('data-current-status');
+      const next = current === 'suspended' ? 'active' : 'suspended';
+      const label = next === 'suspended' ? '이 계정의 이용을 정지할까요?' : '이 계정을 다시 활성화할까요?';
+      if (!confirm(label)) return;
+      btn.disabled = true;
+      const { error } = await sb.from('profiles').update({ account_status: next }).eq('id', userId);
+      if (error) { alert('계정 상태를 변경하지 못했습니다: ' + error.message); btn.disabled = false; return; }
+      const target = allProfiles.find(p => p.id === userId);
+      if (target) target.account_status = next;
+      render(allProfiles);
+    });
+  });
+}
+
+function renderDeletionRequests() {
+  if (!deletionRequests.length) return '<p style="color:var(--muted);">대기 중인 삭제 요청이 없습니다.</p>';
+  return deletionRequests.map(r => {
+    const p = allProfiles.find(item => item.id === r.user_id) || {};
+    return `<div class="log-entry" style="margin-bottom:10px;">
+      <div class="log-main">
+        <strong>${escapeHtml(p.name || '이름 없음')} · ${escapeHtml(p.email || '')}</strong>
+        <p>${r.reason ? escapeHtml(r.reason) : '사유 없음'}</p>
+        <button class="btn-small" data-handle-request="${r.id}" data-user-id="${r.user_id}">계정 정지 및 확인 완료</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bindDeletionEvents() {
+  document.querySelectorAll('[data-handle-request]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 계정을 정지하고 삭제 요청을 확인 완료로 표시할까요?')) return;
+      btn.disabled = true;
+      const requestId = btn.getAttribute('data-handle-request');
+      const userId = btn.getAttribute('data-user-id');
+      const { error: profileError } = await sb.from('profiles').update({ account_status: 'suspended' }).eq('id', userId);
+      if (profileError) { alert('계정을 정지하지 못했습니다: ' + profileError.message); btn.disabled = false; return; }
+      const { error: requestError } = await sb.from('account_deletion_requests')
+        .update({ status: 'completed', resolved_at: new Date().toISOString() })
+        .eq('id', requestId);
+      if (requestError) { alert('요청 상태를 변경하지 못했습니다: ' + requestError.message); btn.disabled = false; return; }
+      deletionRequests = deletionRequests.filter(r => r.id !== requestId);
+      const target = allProfiles.find(p => p.id === userId);
+      if (target) target.account_status = 'suspended';
+      render(allProfiles);
+    });
+  });
 }
 
 function render(list) {
@@ -201,10 +268,13 @@ function render(list) {
       <span class="count" id="countLabel"></span>
     </div>
     <div id="tableWrap">${renderTable(list)}</div>
+    <h2 style="margin-top:36px;font-size:22px;">계정 삭제 요청</h2>
+    <div id="deletionRequestWrap">${renderDeletionRequests()}</div>
   `;
 
   document.getElementById('countLabel').textContent = `총 ${list.length}명`;
   bindTableEvents();
+  bindDeletionEvents();
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();

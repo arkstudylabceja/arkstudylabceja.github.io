@@ -27,6 +27,8 @@
 <script src="supabase-client.js"></script>
 <script>
 let homePage = 'index.html';
+let currentUserId = null;
+let pendingRequest = null;
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -45,6 +47,22 @@ async function init() {
     document.getElementById('content').innerHTML = '<p>프로필을 불러오지 못했습니다.</p>';
     return;
   }
+
+  if (profile.account_status === 'suspended') {
+    await sb.auth.signOut();
+    window.location.href = 'login.html?suspended=1';
+    return;
+  }
+
+  currentUserId = session.user.id;
+  const { data: requests } = await sb
+    .from('account_deletion_requests')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .eq('status', 'pending')
+    .order('requested_at', { ascending: false })
+    .limit(1);
+  pendingRequest = requests && requests.length ? requests[0] : null;
 
   homePage = profile.role === 'parent' ? 'parent.html'
            : profile.role === 'admin'  ? 'admin.html'
@@ -72,6 +90,26 @@ function render() {
       </div>
       <button type="submit" class="btn" id="submitBtn">비밀번호 변경</button>
     </form>
+
+    <hr style="margin:36px 0;border:0;border-top:1px solid var(--line);">
+    <h2 style="font-size:20px;">계정 삭제 요청</h2>
+    <p class="sub">요청하면 관리자가 확인한 뒤 계정을 정지합니다. 학습 기록과 사진은 즉시 영구 삭제되지 않습니다.</p>
+    <div id="deleteMsg" class="msg"></div>
+    ${pendingRequest ? `
+      <div class="locked-box" style="text-align:left;">
+        <h3>삭제 요청을 확인하고 있어요</h3>
+        <p>${pendingRequest.reason ? escapeHtml(pendingRequest.reason) : '별도의 사유를 남기지 않았습니다.'}</p>
+        <button type="button" class="btn-small" id="cancelDeleteBtn">삭제 요청 취소</button>
+      </div>
+    ` : `
+      <form id="deleteForm">
+        <div class="form-group">
+          <label>요청 사유 (선택)</label>
+          <textarea id="deleteReason" maxlength="500" placeholder="관리자에게 전달할 내용을 적어주세요"></textarea>
+        </div>
+        <button type="submit" class="btn-small" id="deleteRequestBtn">계정 삭제 요청하기</button>
+      </form>
+    `}
 
     <div class="switch-link"><a href="${homePage}">← 뒤로 가기</a></div>
   `;
@@ -103,6 +141,40 @@ function render() {
     showMsg('비밀번호가 변경되었습니다.', 'success');
     document.getElementById('pwForm').reset();
   });
+
+  const deleteForm = document.getElementById('deleteForm');
+  if (deleteForm) deleteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!confirm('계정 삭제를 요청할까요? 관리자가 확인하기 전에는 취소할 수 있습니다.')) return;
+    const reason = document.getElementById('deleteReason').value.trim();
+    const { data, error } = await sb.from('account_deletion_requests')
+      .insert({ user_id: currentUserId, reason: reason || null })
+      .select()
+      .single();
+    if (error) { showDeleteMsg('요청하지 못했습니다: ' + error.message, 'error'); return; }
+    pendingRequest = data;
+    render();
+  });
+
+  const cancelBtn = document.getElementById('cancelDeleteBtn');
+  if (cancelBtn) cancelBtn.addEventListener('click', async () => {
+    const { error } = await sb.rpc('cancel_my_account_deletion_request');
+    if (error) { showDeleteMsg('취소하지 못했습니다: ' + error.message, 'error'); return; }
+    pendingRequest = null;
+    render();
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function showDeleteMsg(text, type) {
+  const el = document.getElementById('deleteMsg');
+  el.textContent = text;
+  el.className = 'msg show ' + type;
 }
 
 function showMsg(text, type) {
