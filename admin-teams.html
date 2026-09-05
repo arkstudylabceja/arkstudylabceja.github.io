@@ -32,6 +32,7 @@ const contentEl = document.getElementById('content');
 let students = [];
 let teams = [];
 let membersByTeam = {};
+let postsByStudent = {};
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -73,14 +74,15 @@ async function init() {
 }
 
 async function loadAll() {
-  const [studentsRes, teamsRes, membersRes] = await Promise.all([
+  const [studentsRes, teamsRes, membersRes, postsRes] = await Promise.all([
     sb.from('profiles').select('id, name, email').eq('role', 'student'),
     sb.from('teams').select('*').order('created_at', { ascending: false }),
-    sb.from('team_members').select('id, team_id, student_id, profiles(name)')
+    sb.from('team_members').select('id, team_id, student_id, profiles(name)'),
+    sb.from('team_posts').select('id, team_id, student_id, created_at')
   ]);
 
-  if (studentsRes.error || teamsRes.error || membersRes.error) {
-    contentEl.innerHTML = `<p>불러오기 실패: ${(studentsRes.error || teamsRes.error || membersRes.error).message}</p>`;
+  if (studentsRes.error || teamsRes.error || membersRes.error || postsRes.error) {
+    contentEl.innerHTML = `<p>불러오기 실패: ${(studentsRes.error || teamsRes.error || membersRes.error || postsRes.error).message}</p>`;
     return;
   }
 
@@ -91,6 +93,12 @@ async function loadAll() {
   membersRes.data.forEach(m => {
     if (!membersByTeam[m.team_id]) membersByTeam[m.team_id] = [];
     membersByTeam[m.team_id].push(m);
+  });
+
+  postsByStudent = {};
+  postsRes.data.forEach(post => {
+    if (!postsByStudent[post.student_id]) postsByStudent[post.student_id] = [];
+    postsByStudent[post.student_id].push(post);
   });
 
   render();
@@ -159,6 +167,20 @@ function renderTeamCard(team, assignedIds) {
     .map(s => `<option value="${s.id}">${escapeHtml(s.name)}${assignedIds.has(s.id) ? ' (다른 인증방 소속)' : ''}</option>`)
     .join('');
 
+  const activityHtml = members.map(member => {
+    const posts = (postsByStudent[member.student_id] || []).filter(post => post.team_id === team.id);
+    const latest = posts.reduce((value, post) => !value || post.created_at > value ? post.created_at : value, null);
+    const daysSince = latest ? Math.floor((Date.now() - new Date(latest).getTime()) / 86400000) : null;
+    const inactive = daysSince === null || daysSince >= 7;
+    const latestText = latest ? new Date(latest).toLocaleDateString('ko-KR') : '기록 없음';
+    return `
+      <div class="activity-row" style="display:grid;grid-template-columns:minmax(100px,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #edf0f5;">
+        <strong>${escapeHtml(member.profiles ? member.profiles.name : '알 수 없음')}</strong>
+        <span style="font-size:13px;color:var(--muted);">게시물 ${posts.length}개 · 최근 ${latestText}</span>
+        <span class="role-badge ${inactive ? 'parent' : 'student'}">${inactive ? '확인 필요' : '활동 중'}</span>
+      </div>`;
+  }).join('');
+
   return `
     <div class="lesson-box" data-team-card="${team.id}">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
@@ -193,6 +215,13 @@ function renderTeamCard(team, assignedIds) {
               </span>
             `).join('')}
       </div>
+
+      ${members.length ? `
+        <div style="margin:4px 0 18px;padding:4px 14px;background:#f8f9fc;border-radius:12px;">
+          <div style="padding:10px 0 4px;font-size:13px;font-weight:800;color:var(--navy-deep);">인증 활동 현황</div>
+          ${activityHtml}
+          <p style="font-size:12px;color:var(--muted);margin:8px 0;">최근 7일간 인증 기록이 없으면 ‘확인 필요’로 표시됩니다.</p>
+        </div>` : ''}
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <select data-add-select="${team.id}" style="padding:8px 10px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;">

@@ -205,4 +205,6 @@ a{text-decoration:none;color:inherit;}
   .data-table td:nth-child(5)::before{content:"학습 기록";}
   .data-table td[colspan="5"]{display:block;padding:0;}
   .data-table td[colspan="5"]::before{display:none;}
+  .activity-row{grid-template-columns:1fr !important;gap:5px !important;}
+  .activity-row .role-badge{justify-self:start;}
 }
