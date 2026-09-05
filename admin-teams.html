@@ -39,6 +39,10 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
@@ -157,8 +161,27 @@ function renderTeamCard(team, assignedIds) {
 
   return `
     <div class="lesson-box" data-team-card="${team.id}">
-      <h3>${escapeHtml(team.name)}</h3>
-      ${team.description ? `<p style="margin-bottom:12px;">${escapeHtml(team.description)}</p>` : ''}
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <h3>${escapeHtml(team.name)}</h3>
+          ${team.description ? `<p style="margin-bottom:12px;">${escapeHtml(team.description)}</p>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="btn-small" data-edit-team="${team.id}">수정</button>
+          <button type="button" class="btn-small" data-delete-team="${team.id}" style="color:var(--red);">삭제</button>
+        </div>
+      </div>
+
+      <form data-edit-form="${team.id}" style="display:none;margin:12px 0 18px;">
+        <div class="form-row">
+          <div class="form-group"><label>인증방 이름</label><input type="text" data-edit-name="${team.id}" value="${escapeAttr(team.name)}" required></div>
+          <div class="form-group"><label>설명 (선택)</label><input type="text" data-edit-desc="${team.id}" value="${escapeAttr(team.description || '')}"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn-small">변경 저장</button>
+          <button type="button" class="btn-small" data-cancel-edit="${team.id}">취소</button>
+        </div>
+      </form>
 
       <div style="margin-bottom:14px;">
         ${members.length === 0
@@ -183,6 +206,50 @@ function renderTeamCard(team, assignedIds) {
 }
 
 function bindTeamCardEvents() {
+  document.querySelectorAll('[data-edit-team]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const teamId = btn.getAttribute('data-edit-team');
+      document.querySelector(`[data-edit-form="${teamId}"]`).style.display = 'block';
+    });
+  });
+
+  document.querySelectorAll('[data-cancel-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const teamId = btn.getAttribute('data-cancel-edit');
+      document.querySelector(`[data-edit-form="${teamId}"]`).style.display = 'none';
+    });
+  });
+
+  document.querySelectorAll('[data-edit-form]').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const teamId = form.getAttribute('data-edit-form');
+      const name = document.querySelector(`[data-edit-name="${teamId}"]`).value.trim();
+      const description = document.querySelector(`[data-edit-desc="${teamId}"]`).value.trim();
+      if (!name) return;
+      const { error } = await sb.from('teams').update({ name, description: description || null }).eq('id', teamId);
+      if (error) {
+        showMsg('인증방 수정 실패: ' + error.message, 'error');
+        return;
+      }
+      await loadAll();
+    });
+  });
+
+  document.querySelectorAll('[data-delete-team]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const teamId = btn.getAttribute('data-delete-team');
+      const team = teams.find(t => t.id === teamId);
+      if (!confirm(`'${team ? team.name : '이 인증방'}'을 삭제할까요? 인증방 게시물도 함께 삭제됩니다.`)) return;
+      const { error } = await sb.from('teams').delete().eq('id', teamId);
+      if (error) {
+        showMsg('인증방 삭제 실패: ' + error.message, 'error');
+        return;
+      }
+      await loadAll();
+    });
+  });
+
   document.querySelectorAll('[data-remove-member]').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('이 학생을 인증방에서 제외할까요?')) return;
@@ -208,6 +275,15 @@ function bindTeamCardEvents() {
       const { error } = await sb.from('team_members').insert({ team_id: teamId, student_id: studentId });
       if (error) {
         showMsg('추가 실패: ' + error.message, 'error');
+        return;
+      }
+      const { error: moveError } = await sb
+        .from('team_members')
+        .delete()
+        .eq('student_id', studentId)
+        .neq('team_id', teamId);
+      if (moveError) {
+        showMsg('학생은 추가되었지만 이전 인증방 정리에 실패했습니다: ' + moveError.message, 'error');
         return;
       }
       await loadAll();
