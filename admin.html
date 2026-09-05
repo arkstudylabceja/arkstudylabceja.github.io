@@ -30,6 +30,7 @@
 <script>
 const contentEl = document.getElementById('content');
 let allProfiles = [];
+const IMAGE_BUCKET = 'study-log-images';
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -158,12 +159,22 @@ async function toggleLogs(studentId, btn) {
   } else if (!logs || logs.length === 0) {
     td.innerHTML = '<p class="empty-note">아직 학습 기록이 없어요.</p>';
   } else {
-    td.innerHTML = logs.map(log => `
+    const logsWithImages = await Promise.all(logs.map(async log => {
+      let imageUrl = null;
+      if (log.image_path) {
+        const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
+        imageUrl = data ? data.signedUrl : null;
+      }
+      return { ...log, imageUrl };
+    }));
+
+    td.innerHTML = logsWithImages.map(log => `
       <div class="log-entry" style="margin-bottom:8px;">
         <div class="log-main">
           <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}</div>
           <div class="log-content">${escapeHtml(log.content)}</div>
           ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+          ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="학생 개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
         </div>
       </div>
     `).join('');
