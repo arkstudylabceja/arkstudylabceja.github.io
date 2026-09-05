@@ -28,6 +28,7 @@
 <script src="supabase-client.js"></script>
 <script>
 const contentEl = document.getElementById('content');
+const IMAGE_BUCKET = 'study-log-images';
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -115,7 +116,7 @@ async function loadChildLogs() {
   const el = document.getElementById('childLogs');
   const { data: logs, error } = await sb
     .from('study_logs')
-    .select('id, study_date, subject, content, minutes_spent, profiles(name)')
+    .select('id, study_date, subject, content, minutes_spent, image_path, profiles(name)')
     .order('study_date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(5);
@@ -130,12 +131,22 @@ async function loadChildLogs() {
     return;
   }
 
-  el.innerHTML = logs.map(log => `
+  const logsWithImages = await Promise.all(logs.map(async log => {
+    let imageUrl = null;
+    if (log.image_path) {
+      const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
+      imageUrl = data ? data.signedUrl : null;
+    }
+    return { ...log, imageUrl };
+  }));
+
+  el.innerHTML = logsWithImages.map(log => `
     <div class="log-entry">
       <div class="log-main">
         <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}${log.profiles ? ' · ' + escapeHtml(log.profiles.name) : ''}</div>
         <div class="log-content">${escapeHtml(log.content)}</div>
         ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+        ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="자녀 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
       </div>
     </div>
   `).join('');
