@@ -124,14 +124,14 @@ async function loadTeamBox(myId) {
   if (error || !membership) {
     teamBox.innerHTML = `
       <h3>🧑‍🤝‍🧑 학습 인증방</h3>
-      <p>아직 배정된 팀이 없어요. 관리자가 배정하면 여기에서 팀원들과 공부 기록을 나눌 수 있어요.</p>
+      <p>아직 배정된 인증방이 없어요. 관리자가 배정하면 여기에서 참여 학생들과 공부 기록을 나눌 수 있어요.</p>
     `;
     return;
   }
 
   teamBox.innerHTML = `
     <h3>🧑‍🤝‍🧑 ${membership.teams.name}</h3>
-    <p>팀원들과 함께 공부 기록을 나눠보세요.</p>
+    <p>인증방 참여 학생들과 함께 공부 기록을 나눠보세요.</p>
     <a href="team.html" class="btn" style="display:block;text-align:center;width:auto;padding:10px 20px;margin-top:8px;">학습 인증방 가기</a>
   `;
 }

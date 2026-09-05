@@ -78,8 +78,8 @@ async function init() {
     contentEl.innerHTML = `
       <div class="locked-box">
         <div class="icon">🧑‍🤝‍🧑</div>
-        <h2>아직 배정된 팀이 없어요</h2>
-        <p>관리자가 팀을 배정하면 이 페이지에서 팀원들과 공부 기록을 나눌 수 있어요. 잠시만 기다려주세요.</p>
+        <h2>아직 배정된 인증방이 없어요</h2>
+        <p>관리자가 인증방을 배정하면 이 페이지에서 참여 학생들과 공부 기록을 나눌 수 있어요. 잠시만 기다려주세요.</p>
       </div>`;
     return;
   }
@@ -101,18 +101,18 @@ async function renderTeam(team) {
   contentEl.innerHTML = `
     <h1>🧑‍🤝‍🧑 ${escapeHtml(team.name)}</h1>
     ${team.description ? `<p class="sub">${escapeHtml(team.description)}</p>` : ''}
-    <p class="sub">팀원: ${memberNames.map(escapeHtml).join(', ') || '-'}</p>
+    <p class="sub">인증방 참여 학생: ${memberNames.map(escapeHtml).join(', ') || '-'}</p>
 
     <div id="msg" class="msg"></div>
 
     <form id="postForm">
       <div class="form-group">
-        <textarea id="postContent" required placeholder="오늘 팀원들과 나누고 싶은 공부 이야기를 남겨보세요"></textarea>
+        <textarea id="postContent" required placeholder="오늘 참여 학생들과 나누고 싶은 공부 이야기를 남겨보세요"></textarea>
       </div>
       <button type="submit" class="btn" id="submitBtn">게시하기</button>
     </form>
 
-    <h2 style="margin-top:32px;font-size:18px;color:var(--navy-deep);margin-bottom:16px;">팀 게시물</h2>
+    <h2 style="margin-top:32px;font-size:18px;color:var(--navy-deep);margin-bottom:16px;">인증 게시물</h2>
     <div id="postList"><div class="loading">불러오는 중...</div></div>
   `;
 
@@ -166,7 +166,7 @@ async function loadPosts() {
   }
 
   if (!posts || posts.length === 0) {
-    listEl.innerHTML = '<p class="empty-note">아직 팀 게시물이 없어요. 첫 글을 남겨보세요!</p>';
+    listEl.innerHTML = '<p class="empty-note">아직 인증 게시물이 없어요. 첫 글을 남겨보세요!</p>';
     return;
   }
 
