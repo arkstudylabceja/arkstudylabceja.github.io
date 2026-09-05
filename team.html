@@ -30,6 +30,7 @@
 const contentEl = document.getElementById('content');
 let myId = null;
 let myTeamId = null;
+const IMAGE_BUCKET = 'team-post-images';
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -109,6 +110,10 @@ async function renderTeam(team) {
       <div class="form-group">
         <textarea id="postContent" required placeholder="오늘 참여 학생들과 나누고 싶은 공부 이야기를 남겨보세요"></textarea>
       </div>
+      <div class="form-group">
+        <label for="postImage">공부 사진 (선택, 최대 5MB)</label>
+        <input id="postImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+      </div>
       <button type="submit" class="btn" id="submitBtn">게시하기</button>
     </form>
 
@@ -120,21 +125,46 @@ async function renderTeam(team) {
     e.preventDefault();
     const submitBtn = document.getElementById('submitBtn');
     const content = document.getElementById('postContent').value.trim();
+    const imageFile = document.getElementById('postImage').files[0];
     if (!content) return;
+
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      showMsg('사진은 5MB 이하만 올릴 수 있어요.', 'error');
+      return;
+    }
 
     submitBtn.disabled = true;
     submitBtn.textContent = '게시 중...';
 
+    let imagePath = null;
+    if (imageFile) {
+      const extension = (imageFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      imagePath = `${myId}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await sb.storage.from(IMAGE_BUCKET).upload(imagePath, imageFile, {
+        cacheControl: '3600',
+        contentType: imageFile.type,
+        upsert: false
+      });
+      if (uploadError) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '게시하기';
+        showMsg('사진 업로드 실패: ' + uploadError.message, 'error');
+        return;
+      }
+    }
+
     const { error } = await sb.from('team_posts').insert({
       team_id: myTeamId,
       student_id: myId,
-      content
+      content,
+      image_path: imagePath
     });
 
     submitBtn.disabled = false;
     submitBtn.textContent = '게시하기';
 
     if (error) {
+      if (imagePath) await sb.storage.from(IMAGE_BUCKET).remove([imagePath]);
       showMsg('게시 실패: ' + error.message, 'error');
       return;
     }
@@ -156,7 +186,7 @@ async function loadPosts() {
   const listEl = document.getElementById('postList');
   const { data: posts, error } = await sb
     .from('team_posts')
-    .select('id, content, created_at, student_id, profiles(name)')
+    .select('id, content, image_path, created_at, student_id, profiles(name)')
     .eq('team_id', myTeamId)
     .order('created_at', { ascending: false });
 
@@ -170,25 +200,39 @@ async function loadPosts() {
     return;
   }
 
-  listEl.innerHTML = posts.map(post => `
+  const postsWithImages = await Promise.all(posts.map(async post => {
+    let imageUrl = null;
+    if (post.image_path) {
+      const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(post.image_path, 3600);
+      imageUrl = data ? data.signedUrl : null;
+    }
+    return { ...post, imageUrl };
+  }));
+
+  listEl.innerHTML = postsWithImages.map(post => {
+    const imageUrl = post.imageUrl;
+    return `
     <div class="log-entry">
       <div class="log-main">
         <div class="log-date">${escapeHtml(post.profiles ? post.profiles.name : '알 수 없음')} · ${new Date(post.created_at).toLocaleString('ko-KR')}</div>
         <div class="log-content">${escapeHtml(post.content)}</div>
+        ${imageUrl ? `<a href="${imageUrl}" target="_blank" rel="noopener"><img src="${imageUrl}" alt="공부 인증 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
       </div>
-      ${post.student_id === myId ? `<button class="btn-small" data-delete="${post.id}">삭제</button>` : ''}
+      ${post.student_id === myId ? `<button class="btn-small" data-delete="${post.id}" data-image-path="${post.image_path || ''}">삭제</button>` : ''}
     </div>
-  `).join('');
+  `}).join('');
 
   listEl.querySelectorAll('[data-delete]').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('이 게시물을 삭제할까요?')) return;
       const id = btn.getAttribute('data-delete');
+      const imagePath = btn.getAttribute('data-image-path');
       const { error: delError } = await sb.from('team_posts').delete().eq('id', id);
       if (delError) {
         alert('삭제 실패: ' + delError.message);
         return;
       }
+      if (imagePath) await sb.storage.from(IMAGE_BUCKET).remove([imagePath]);
       await loadPosts();
     });
   });
