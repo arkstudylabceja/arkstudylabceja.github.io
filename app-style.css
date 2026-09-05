@@ -190,6 +190,11 @@ a{text-decoration:none;color:inherit;}
 .consent-box input[type="checkbox"]{width:auto;margin-top:3px;}
 
 @media (max-width:720px){
+  .topbar{padding:14px 16px;display:block;}
+  .topbar .logo{display:block;white-space:nowrap;}
+  .topbar .top-actions{width:100%;margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;}
+  .topbar .top-actions a,.topbar .top-actions button,.topbar .top-actions span{white-space:nowrap;font-size:13px;}
+  .topbar .top-actions button:last-child{margin-left:auto;}
   .card.xwide{padding:24px 18px;}
   .toolbar input[type="text"]{width:100%;min-width:0;}
   .table-scroll{overflow:visible;}
