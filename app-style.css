@@ -215,8 +215,9 @@ a{text-decoration:none;color:inherit;}
   .data-table td:nth-child(3)::before{content:"역할";}
   .data-table td:nth-child(4)::before{content:"비고";}
   .data-table td:nth-child(5)::before{content:"학습 기록";}
-  .data-table td[colspan="5"]{display:block;padding:0;}
-  .data-table td[colspan="5"]::before{display:none;}
+  .data-table td:nth-child(6)::before{content:"계정 상태";}
+  .data-table td[colspan]{display:block;padding:0;}
+  .data-table td[colspan]::before{display:none;}
   .activity-row{grid-template-columns:1fr !important;gap:5px !important;}
   .activity-row .role-badge{justify-self:start;}
 }
