@@ -60,8 +60,53 @@ async function init() {
     return;
   }
 
-  myId = profile.id;
   document.getElementById('userName').textContent = profile.name + '님';
+
+  if (!profile.guardian_consent_at) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🛡️</div>
+        <h2>학부모 승인을 기다리고 있어요</h2>
+        <p>연결된 학부모가 학부모 계정으로 로그인해 개인정보 처리와 서비스 이용에 동의하면 개인 자료실이 열립니다.</p>
+      </div>`;
+    return;
+  }
+
+  if (!profile.parent_email) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">⚠️</div>
+        <h2>연결된 학부모 계정이 없어요</h2>
+        <p>가입 시 입력한 학부모 이메일이 없습니다. 운영진에게 문의해주세요.</p>
+      </div>`;
+    return;
+  }
+
+  const { data: parentStatus, error: parentError } = await sb
+    .rpc('get_my_parent_status')
+    .maybeSingle();
+
+  if (parentError || !parentStatus) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🔍</div>
+        <h2>학부모 계정을 찾을 수 없어요</h2>
+        <p>입력하신 학부모 이메일(${profile.parent_email})로 가입된 학부모 계정이 아직 없어요. 학부모님이 먼저 회원가입을 해주셔야 합니다.</p>
+      </div>`;
+    return;
+  }
+
+  if (!parentStatus.course_completed) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🔒</div>
+        <h2>아직 개인 자료실이 열리지 않았어요</h2>
+        <p>학부모님(${parentStatus.parent_name})이 자기주도학습 강의를 완료하시면 개인 자료실이 열려요. 학부모님께 먼저 강의 수강을 부탁드려주세요.</p>
+      </div>`;
+    return;
+  }
+
+  myId = profile.id;
 
   renderShell();
   await loadLogs();

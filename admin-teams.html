@@ -349,18 +349,12 @@ function bindTeamCardEvents() {
         showMsg('추가할 학생을 먼저 선택해주세요.', 'error');
         return;
       }
-      const { error } = await sb.from('team_members').insert({ team_id: teamId, student_id: studentId });
+      const { error } = await sb.rpc('admin_assign_student_to_team', {
+        target_student_id: studentId,
+        target_team_id: teamId
+      });
       if (error) {
-        showMsg('추가 실패: ' + error.message, 'error');
-        return;
-      }
-      const { error: moveError } = await sb
-        .from('team_members')
-        .delete()
-        .eq('student_id', studentId)
-        .neq('team_id', teamId);
-      if (moveError) {
-        showMsg('학생은 추가되었지만 이전 인증방 정리에 실패했습니다: ' + moveError.message, 'error');
+        showMsg('배정 실패: ' + error.message, 'error');
         return;
       }
       await loadAll();
