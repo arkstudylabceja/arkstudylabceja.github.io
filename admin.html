@@ -97,7 +97,7 @@ function noteFor(p) {
   }
   if (p.role === 'student') {
     return p.parent_email
-      ? `학부모: ${p.parent_email}`
+      ? `학부모: ${escapeHtml(p.parent_email)}`
       : '<span style="color:var(--red);">학부모 연동 없음</span>';
   }
   return '-';
@@ -115,8 +115,8 @@ function renderTable(list) {
   }
   const rows = list.map(p => `
     <tr>
-      <td>${p.name || '-'}</td>
-      <td>${p.email || '-'}</td>
+      <td>${escapeHtml(p.name || '-')}</td>
+      <td>${escapeHtml(p.email || '-')}</td>
       <td><span class="role-badge ${p.role}">${roleLabel(p.role)}</span></td>
       <td>${noteFor(p)}</td>
       <td>${p.role === 'student' ? `<button class="btn-small" data-toggle-logs="${p.id}">개인 자료실 보기</button>` : '-'}</td>
