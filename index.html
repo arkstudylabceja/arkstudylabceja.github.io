@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARK STUDY LAB | 자기주도학습 · 입시 · 학부모 교육</title>
-<meta name="description" content="초등 고학년부터 중학생까지, 엄마가 학습 방향을 잡아주고 아이가 스스로 공부하는 힘을 기르는 자기주도학습·집수학 교육 프로그램입니다.">
+<meta name="description" content="초등 고학년부터 중학생까지 자기주도학습·집수학 교육과 중학생 고등학교 선택·학습전략 상담을 제공하는 ARK STUDY LAB입니다.">
 <meta name="robots" content="index,follow">
 <meta name="naver-site-verification" content="282ef1fbaaf4fbaffb6f3155aa307e97454510bf">
 <link rel="canonical" href="https://arkstudylabceja.github.io/">
@@ -160,6 +160,34 @@
   .program-card.featured h3{font-size:23px;line-height:1.35;}
   .program-card.featured p{font-size:15px;line-height:1.75;}
 
+  /* HIGH SCHOOL CONSULTING */
+  .consult-shell{
+    background:linear-gradient(145deg,var(--navy-deep),#172953);
+    border-radius:24px;padding:56px;color:var(--white);position:relative;overflow:hidden;
+  }
+  .consult-shell::after{
+    content:"";position:absolute;right:-90px;bottom:-120px;width:320px;height:320px;
+    border-radius:50%;background:rgba(201,162,39,.13);
+  }
+  .consult-top{position:relative;z-index:1;max-width:780px;margin-bottom:36px;}
+  .consult-kicker{color:var(--gold-light);font-size:13px;font-weight:800;letter-spacing:1.6px;margin-bottom:10px;}
+  .consult-top h2{font-size:34px;line-height:1.35;margin-bottom:14px;}
+  .consult-top p{color:#c7cee0;font-size:16px;}
+  .consult-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:24px;position:relative;z-index:1;}
+  .consult-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px;}
+  .consult-card h3{color:var(--gold-light);font-size:18px;margin-bottom:16px;}
+  .consult-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;}
+  .consult-list li{font-size:14px;color:#e0e5f0;padding-left:20px;position:relative;}
+  .consult-list li::before{content:"✓";position:absolute;left:0;color:var(--gold-light);font-weight:900;}
+  .price-label{font-size:13px;color:#aeb8cf;margin-bottom:4px;}
+  .price{font-size:30px;font-weight:900;color:var(--white);margin-bottom:8px;}
+  .price s{font-size:16px;color:#9ca7be;font-weight:500;margin-right:8px;}
+  .launch-note{display:inline-block;background:var(--gold);color:var(--navy-deep);font-weight:800;font-size:12px;padding:5px 10px;border-radius:20px;margin-bottom:18px;}
+  .consult-meta{font-size:13.5px;color:#d2d8e6;line-height:1.8;margin-bottom:20px;}
+  .consult-btn{display:inline-flex;align-items:center;justify-content:center;background:var(--gold);color:var(--navy-deep);font-weight:800;padding:12px 20px;border-radius:24px;}
+  .consult-btn:hover{background:var(--gold-light);}
+  .consult-foot{position:relative;z-index:1;margin-top:24px;font-size:13.5px;color:#b9c2d5;}
+
   /* WHY */
   .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;}
   .why-card{text-align:center;padding:12px;}
@@ -263,6 +291,9 @@
     .hero h1{font-size:32px;}
     .about-grid{grid-template-columns:1fr;}
     .program-grid{grid-template-columns:1fr 1fr;}
+    .consult-shell{padding:38px 28px;}
+    .consult-grid{grid-template-columns:1fr;}
+    .consult-list{grid-template-columns:1fr;}
     .why-grid{grid-template-columns:1fr;}
     .apply-wrap{grid-template-columns:1fr;padding:32px;}
     .form-row{grid-template-columns:1fr;}
@@ -282,6 +313,7 @@
       <ul id="navLinks">
         <li><a href="#about">소개</a></li>
         <li><a href="#programs">프로그램</a></li>
+        <li><a href="#highschool-consulting">고교 선택 상담</a></li>
         <li><a href="#roadmap">서비스 안내</a></li>
         <li><a href="#contact">문의</a></li>
         <li><a href="login.html">로그인</a></li>
@@ -361,6 +393,39 @@
         <h3>입시 상담</h3>
         <p>학생의 학년과 실력, 진로 방향을 살펴 지금부터 준비해야 할 입시 계획을 함께 세웁니다.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="highschool-consulting">
+  <div class="container">
+    <div class="consult-shell">
+      <div class="consult-top">
+        <div class="consult-kicker">HIGH SCHOOL CHOICE CONSULTING</div>
+        <h2>중학생 고등학교 선택·학습전략 상담</h2>
+        <p>학교의 이름이나 현재 성적만으로 진학 방향을 정하지 않습니다. 아이의 학습상태와 선행 수준, 혼자 공부하는 힘을 살펴보고 희망하는 고등학교의 환경과 연결해 판단합니다.</p>
+      </div>
+      <div class="consult-grid">
+        <div class="consult-card">
+          <h3>상담에서 함께 살펴봅니다</h3>
+          <ul class="consult-list">
+            <li>현재 성적이 만들어진 과정과 학습습관</li>
+            <li>수학·영어 선행 수준과 입학 전 보완점</li>
+            <li>희망 고등학교 2~3곳의 교육환경 비교</li>
+            <li>학교별 장점과 아이에게 부담이 될 수 있는 요인</li>
+            <li>통학·수면·학원 일정과 자기 공부시간</li>
+            <li>고등학교 입학 전 3개월 실행계획</li>
+          </ul>
+        </div>
+        <div class="consult-card">
+          <div class="price-label">부모·학생 90분 상담</div>
+          <div class="price"><s>180,000원</s>150,000원</div>
+          <div class="launch-note">첫 상담 3가정 론칭가</div>
+          <div class="consult-meta">사전설문·자료검토<br>학교 선택 기준 및 상담 요약지<br>상담 후 7일 이내 추가 질문 1회</div>
+          <a class="consult-btn" href="#apply">상담 신청하기</a>
+        </div>
+      </div>
+      <p class="consult-foot">학교를 대신 결정하거나 합격을 약속하는 상담이 아닙니다. 부모님과 학생이 납득할 수 있는 선택 기준과 현실적인 준비 방향을 함께 세웁니다.</p>
     </div>
   </div>
 </section>
@@ -543,6 +608,7 @@
               <option>학부모 자기주도학습 강의</option>
               <option>아이 자기주도학습 강의·학습 인증방</option>
               <option>학습 코칭</option>
+              <option>중학생 고등학교 선택·학습전략 상담</option>
               <option>입시 상담</option>
               <option>기타</option>
             </select>
