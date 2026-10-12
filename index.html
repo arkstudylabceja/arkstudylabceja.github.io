@@ -62,9 +62,11 @@
   nav ul li a:hover{color:var(--gold-light);}
   .nav-cta{
     background:var(--gold);color:var(--navy-deep);
-    padding:10px 20px;border-radius:30px;font-weight:700;font-size:14px;
+    padding:8px 20px;border-radius:30px;font-weight:700;font-size:14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;
     transition:transform .2s;
   }
+  .nav-cta span{font-size:11px;font-weight:700;margin-top:3px;letter-spacing:.02em;}
   .nav-cta:hover{transform:translateY(-2px);}
   .menu-toggle{display:none;background:none;border:none;color:var(--white);font-size:26px;cursor:pointer;}
 
@@ -319,7 +321,7 @@
         <li><a href="login.html">로그인</a></li>
       </ul>
     </nav>
-    <a href="#apply" class="nav-cta">상담·강의 신청</a>
+    <a href="#apply" class="nav-cta">상담·강의 신청<span>010-4390-2940</span></a>
     <button type="button" class="menu-toggle" id="menuToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="navLinks">☰</button>
   </div>
 </header>
