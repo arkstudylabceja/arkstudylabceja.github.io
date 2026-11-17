@@ -20,7 +20,8 @@
 --   - 학부모: 자녀 기록에 대한 'published' 피드백만 조회
 --
 -- 실행 방법: Supabase 대시보드 → SQL Editor → 전체 붙여넣기 → Run
--- 실행 전: 001, 002, 011이 먼저 실행되어 있어야 함
+-- 실행 전: 001, 002가 먼저 실행되어 있어야 함
+--          (011의 is_active() 함수는 이 파일 안에서도 똑같이 만들어 둠)
 -- ============================================================================
 
 create table if not exists public.study_log_feedback (
@@ -36,6 +37,23 @@ create index if not exists study_log_feedback_status_idx
   on public.study_log_feedback (status, updated_at desc);
 
 alter table public.study_log_feedback enable row level security;
+
+-- 헬퍼: 정지되지 않은 계정인지 (011과 동일한 정의. 011을 아직 실행하지 않았어도 되도록)
+create or replace function public.is_active(uid uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select account_status = 'active' from public.profiles where id = uid),
+    false
+  );
+$$;
+
+revoke all on function public.is_active(uuid) from public;
+grant execute on function public.is_active(uuid) to authenticated;
 
 -- 헬퍼: uid가 이 기록의 학생 본인 또는 학부모인지
 create or replace function public.can_view_study_log(target_log_id uuid, uid uuid)
