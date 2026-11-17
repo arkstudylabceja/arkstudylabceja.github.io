@@ -241,12 +241,12 @@ function showMsg(text, type) {
 
 async function loadLogs() {
   const listEl = document.getElementById('logList');
-  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
+  const { data: logs, error } = await sb
     .from('study_logs')
-    .select(columns)
+    .select('*')
     .eq('student_id', myId)
     .order('study_date', { ascending: false })
-    .order('created_at', { ascending: false }), '*');
+    .order('created_at', { ascending: false });
 
   if (error) {
     listEl.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
@@ -274,7 +274,6 @@ async function loadLogs() {
         <div class="log-content">${escapeHtml(log.content)}</div>
         ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
         ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
-        ${renderPublishedFeedback(log)}
       </div>
       <button class="btn-small" data-delete="${log.id}" data-image-path="${log.image_path || ''}">삭제</button>
     </div>

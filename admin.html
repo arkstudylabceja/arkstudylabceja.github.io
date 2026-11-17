@@ -210,10 +210,10 @@ function studentNameOf(studentId) {
 function feedbackStatusHtml(fb) {
   if (fb && fb.status === 'published') {
     const date = fb.published_at ? new Date(fb.published_at).toLocaleDateString('ko-KR') : '';
-    return `<span class="status-badge unlocked" style="margin:0;">✓ 학생에게 보냄${date ? ' · ' + date : ''}</span>`;
+    return `<span class="status-badge unlocked" style="margin:0;">✓ 학부모님께 보냄${date ? ' · ' + date : ''}</span>`;
   }
   if (fb && fb.body) {
-    return '<span class="status-badge pending" style="margin:0;">임시 저장됨 (학생에게 안 보임)</span>';
+    return '<span class="status-badge pending" style="margin:0;">임시 저장됨 (학부모님께 안 보임)</span>';
   }
   return '<span class="status-badge locked" style="margin:0;">● 코칭 전</span>';
 }
@@ -232,10 +232,10 @@ function renderCoachLog(log, studentName) {
         ${hasFeedbackTable ? `
         <div class="coach-editor" data-log-id="${log.id}">
           <label>💬 선생님 코칭</label>
-          <textarea data-feedback-text placeholder="학생과 학부모님이 보게 될 코칭을 적어주세요">${escapeHtml(fb ? fb.body || '' : '')}</textarea>
+          <textarea data-feedback-text placeholder="학부모님께 보낼 코칭을 적어주세요">${escapeHtml(fb ? fb.body || '' : '')}</textarea>
           <div class="coach-actions">
             ${published ? '' : '<button type="button" class="btn-small" data-save-feedback="draft">임시 저장</button>'}
-            <button type="button" class="btn-small coach-send" data-save-feedback="published">${published ? '수정해서 다시 보내기' : '학생에게 보내기'}</button>
+            <button type="button" class="btn-small coach-send" data-save-feedback="published">${published ? '수정해서 다시 보내기' : '학부모님께 보내기'}</button>
             <span data-feedback-status>${feedbackStatusHtml(fb)}</span>
           </div>
         </div>` : ''}
@@ -251,7 +251,7 @@ function bindCoachEditors(container, onPublished) {
         const status = btn.getAttribute('data-save-feedback');
         const body = editor.querySelector('[data-feedback-text]').value.trim();
         if (!body) { alert('코칭 내용을 먼저 적어주세요.'); return; }
-        if (status === 'published' && !confirm('이 코칭을 학생과 학부모님 화면에 보낼까요?')) return;
+        if (status === 'published' && !confirm('이 코칭을 학부모님 화면에 보낼까요?')) return;
         const originalText = btn.textContent;
         btn.disabled = true;
         btn.textContent = '저장 중...';
