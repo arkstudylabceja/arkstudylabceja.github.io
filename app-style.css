@@ -221,3 +221,15 @@ a{text-decoration:none;color:inherit;}
   .activity-row{grid-template-columns:1fr !important;gap:5px !important;}
   .activity-row .role-badge{justify-self:start;}
 }
+
+/* 선생님 코칭 피드백 */
+.feedback-box{margin-top:14px;padding:14px 16px;border-radius:12px;background:#fbf3d9;border-left:4px solid var(--gold);}
+.feedback-title{font-size:13px;font-weight:800;color:var(--navy-deep);margin-bottom:6px;}
+.feedback-title span{font-weight:500;color:var(--muted);margin-left:6px;}
+.feedback-body{font-size:14px;line-height:1.7;color:var(--navy-deep);white-space:pre-wrap;}
+.coach-editor{margin-top:14px;padding-top:14px;border-top:1px dashed #e2e5ee;}
+.coach-editor label{display:block;font-size:13px;font-weight:700;color:var(--navy-deep);margin-bottom:6px;}
+.coach-editor textarea{width:100%;min-height:90px;resize:vertical;padding:10px 12px;border:1.5px solid #e2e5ee;border-radius:10px;font:inherit;font-size:14px;}
+.coach-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;}
+.coach-actions .coach-send{background:var(--navy-deep);color:#fff;border-color:var(--navy-deep);}
+.coach-actions .coach-send:hover{background:var(--navy);color:#fff;border-color:var(--navy);}

@@ -27,11 +27,15 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
+<script src="study-feedback.js"></script>
 <script>
 const contentEl = document.getElementById('content');
 let allProfiles = [];
 let deletionRequests = [];
+let myAdminId = null;
 const IMAGE_BUCKET = 'study-log-images';
+const LOG_COLUMNS = 'id, student_id, study_date, subject, content, minutes_spent, image_path, created_at';
+const ADMIN_FEEDBACK_COLUMNS = 'body, status, published_at, updated_at';
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -63,6 +67,7 @@ async function init() {
   }
 
   document.getElementById('userName').textContent = profile.name + '님 (관리자)';
+  myAdminId = profile.id;
 
   const { data: profiles, error: listError } = await sb
     .from('profiles')
@@ -156,12 +161,13 @@ async function toggleLogs(studentId, btn) {
 
   btn.textContent = '불러오는 중...';
 
-  const { data: logs, error } = await sb
+  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
     .from('study_logs')
-    .select('*')
+    .select(columns)
     .eq('student_id', studentId)
     .order('study_date', { ascending: false })
-    .limit(10);
+    .order('created_at', { ascending: false })
+    .limit(10), LOG_COLUMNS, ADMIN_FEEDBACK_COLUMNS);
 
   btn.textContent = '개인 자료실 닫기';
 
@@ -176,29 +182,144 @@ async function toggleLogs(studentId, btn) {
   } else if (!logs || logs.length === 0) {
     td.innerHTML = '<p class="empty-note">아직 학습 기록이 없어요.</p>';
   } else {
-    const logsWithImages = await Promise.all(logs.map(async log => {
-      let imageUrl = null;
-      if (log.image_path) {
-        const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
-        imageUrl = data ? data.signedUrl : null;
-      }
-      return { ...log, imageUrl };
-    }));
-
-    td.innerHTML = logsWithImages.map(log => `
-      <div class="log-entry" style="margin-bottom:8px;">
-        <div class="log-main">
-          <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}</div>
-          <div class="log-content">${escapeHtml(log.content)}</div>
-          ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
-          ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="학생 개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
-        </div>
-      </div>
-    `).join('');
+    const logsWithImages = await withImageUrls(logs);
+    td.innerHTML = logsWithImages.map(log => renderCoachLog(log, null)).join('');
+    bindCoachEditors(td);
   }
 
   tr.appendChild(td);
   btn.closest('tr').after(tr);
+}
+
+async function withImageUrls(logs) {
+  return Promise.all(logs.map(async log => {
+    let imageUrl = null;
+    if (log.image_path) {
+      const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
+      imageUrl = data ? data.signedUrl : null;
+    }
+    return { ...log, imageUrl };
+  }));
+}
+
+function studentNameOf(studentId) {
+  const p = allProfiles.find(item => item.id === studentId);
+  return p ? p.name : '';
+}
+
+function feedbackStatusHtml(fb) {
+  if (fb && fb.status === 'published') {
+    const date = fb.published_at ? new Date(fb.published_at).toLocaleDateString('ko-KR') : '';
+    return `<span class="status-badge unlocked" style="margin:0;">✓ 학생에게 보냄${date ? ' · ' + date : ''}</span>`;
+  }
+  if (fb && fb.body) {
+    return '<span class="status-badge pending" style="margin:0;">임시 저장됨 (학생에게 안 보임)</span>';
+  }
+  return '<span class="status-badge locked" style="margin:0;">● 코칭 전</span>';
+}
+
+function renderCoachLog(log, studentName) {
+  const fb = feedbackOf(log);
+  const published = fb && fb.status === 'published';
+  const hasFeedbackTable = Object.prototype.hasOwnProperty.call(log, 'study_log_feedback');
+  return `
+    <div class="log-entry" style="margin-bottom:10px;">
+      <div class="log-main">
+        <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}${studentName ? ' · <strong>' + escapeHtml(studentName) + '</strong>' : ''}</div>
+        <div class="log-content">${escapeHtml(log.content)}</div>
+        ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
+        ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="학생 개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
+        ${hasFeedbackTable ? `
+        <div class="coach-editor" data-log-id="${log.id}">
+          <label>💬 선생님 코칭</label>
+          <textarea data-feedback-text placeholder="학생과 학부모님이 보게 될 코칭을 적어주세요">${escapeHtml(fb ? fb.body || '' : '')}</textarea>
+          <div class="coach-actions">
+            ${published ? '' : '<button type="button" class="btn-small" data-save-feedback="draft">임시 저장</button>'}
+            <button type="button" class="btn-small coach-send" data-save-feedback="published">${published ? '수정해서 다시 보내기' : '학생에게 보내기'}</button>
+            <span data-feedback-status>${feedbackStatusHtml(fb)}</span>
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+function bindCoachEditors(container, onPublished) {
+  container.querySelectorAll('.coach-editor').forEach(editor => {
+    const logId = editor.getAttribute('data-log-id');
+    editor.querySelectorAll('[data-save-feedback]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const status = btn.getAttribute('data-save-feedback');
+        const body = editor.querySelector('[data-feedback-text]').value.trim();
+        if (!body) { alert('코칭 내용을 먼저 적어주세요.'); return; }
+        if (status === 'published' && !confirm('이 코칭을 학생과 학부모님 화면에 보낼까요?')) return;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '저장 중...';
+        const now = new Date().toISOString();
+        const row = {
+          log_id: logId,
+          body,
+          status,
+          updated_by: myAdminId,
+          updated_at: now,
+          published_at: status === 'published' ? now : null
+        };
+        const { error } = await sb.from('study_log_feedback').upsert(row, { onConflict: 'log_id' });
+        btn.disabled = false;
+        btn.textContent = originalText;
+        if (error) { alert('저장하지 못했습니다: ' + error.message); return; }
+        editor.querySelector('[data-feedback-status]').innerHTML = feedbackStatusHtml(row);
+        if (status === 'published') {
+          const draftBtn = editor.querySelector('[data-save-feedback="draft"]');
+          if (draftBtn) draftBtn.remove();
+          btn.textContent = '수정해서 다시 보내기';
+          if (onPublished) onPublished(logId);
+        }
+      });
+    });
+  });
+}
+
+async function loadPendingCoaching() {
+  const wrap = document.getElementById('pendingCoachWrap');
+  if (!wrap) return;
+  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
+    .from('study_logs')
+    .select(columns)
+    .order('created_at', { ascending: false })
+    .limit(60), LOG_COLUMNS, ADMIN_FEEDBACK_COLUMNS);
+
+  if (error) {
+    wrap.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (logs && logs.length && !Object.prototype.hasOwnProperty.call(logs[0], 'study_log_feedback')) {
+    wrap.innerHTML = '<p class="empty-note">코칭 기능을 쓰려면 Supabase에서 015_study_log_feedback.sql을 먼저 실행해주세요.</p>';
+    return;
+  }
+  const pending = (logs || []).filter(log => {
+    const fb = feedbackOf(log);
+    return !fb || fb.status !== 'published';
+  });
+  const countEl = document.getElementById('pendingCount');
+  if (countEl) countEl.textContent = pending.length ? `${pending.length}건` : '';
+  if (!pending.length) {
+    wrap.innerHTML = '<p class="empty-note">코칭을 기다리는 기록이 없어요. 👍</p>';
+    return;
+  }
+  const shown = pending.slice(0, 20);
+  const withImages = await withImageUrls(shown);
+  wrap.innerHTML = withImages.map(log => `<div data-pending-log="${log.id}">${renderCoachLog(log, studentNameOf(log.student_id))}</div>`).join('')
+    + (pending.length > shown.length ? `<p class="hint">최근 20건만 보여드려요. 나머지 ${pending.length - shown.length}건은 위 기록을 보내면 이어서 보여요.</p>` : '');
+  bindCoachEditors(wrap, logId => {
+    const item = wrap.querySelector(`[data-pending-log="${logId}"]`);
+    if (item) {
+      item.style.opacity = '0.5';
+      setTimeout(() => { item.remove(); if (!wrap.querySelector('[data-pending-log]')) loadPendingCoaching(); }, 900);
+    }
+    const remaining = wrap.querySelectorAll('[data-pending-log]').length - 1;
+    if (countEl) countEl.textContent = remaining > 0 ? `${remaining}건` : '';
+  });
 }
 
 function bindTableEvents() {
@@ -263,6 +384,10 @@ function render(list) {
   contentEl.innerHTML = `
     <h1>학생·학부모 관리</h1>
     <p class="sub">가입된 전체 계정 목록입니다.</p>
+    <h2 style="font-size:22px;margin-bottom:6px;">📝 코칭 대기 <span id="pendingCount" style="font-size:15px;color:var(--red);"></span></h2>
+    <p class="hint" style="margin-bottom:14px;">학생이 올린 기록 중 아직 코칭을 보내지 않은 기록이에요. 최신 순입니다.</p>
+    <div id="pendingCoachWrap"><div class="loading" style="padding:24px 0;">불러오는 중...</div></div>
+    <h2 style="margin-top:36px;font-size:22px;margin-bottom:12px;">전체 계정</h2>
     <div class="toolbar">
       <input type="text" id="searchInput" placeholder="이름 또는 이메일로 검색">
       <span class="count" id="countLabel"></span>
@@ -275,6 +400,7 @@ function render(list) {
   document.getElementById('countLabel').textContent = `총 ${list.length}명`;
   bindTableEvents();
   bindDeletionEvents();
+  loadPendingCoaching();
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();
