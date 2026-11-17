@@ -26,6 +26,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
+<script src="study-feedback.js"></script>
 <script>
 const contentEl = document.getElementById('content');
 const IMAGE_BUCKET = 'study-log-images';
@@ -170,12 +171,12 @@ async function loadChildConsent() {
 
 async function loadChildLogs() {
   const el = document.getElementById('childLogs');
-  const { data: logs, error } = await sb
+  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
     .from('study_logs')
-    .select('id, study_date, subject, content, minutes_spent, image_path, profiles(name)')
+    .select(columns)
     .order('study_date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(5), 'id, study_date, subject, content, minutes_spent, image_path, profiles(name)');
 
   if (error) {
     el.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
@@ -203,6 +204,7 @@ async function loadChildLogs() {
         <div class="log-content">${escapeHtml(log.content)}</div>
         ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
         ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="자녀 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
+        ${renderPublishedFeedback(log)}
       </div>
     </div>
   `).join('');
