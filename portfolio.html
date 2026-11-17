@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학생 개인 자료실 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="app-style.css?v=20261117d">
+<link rel="stylesheet" href="app-style.css?v=20261117e">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
-<script src="study-feedback.js?v=20261117d"></script>
+<script src="study-feedback.js?v=20261117e"></script>
 <script>
 const contentEl = document.getElementById('content');
 let myId = null;
@@ -140,9 +140,10 @@ function renderShell() {
         <input type="number" id="minutes" min="0" placeholder="예: 60">
       </div>
       <div class="form-group">
-        <label for="studyImage">공부 사진 (선택, 최대 10장)</label>
-        <input id="studyImage" type="file" accept="image/*" multiple>
-        <div class="hint">여러 장을 한 번에 고를 수 있어요. 휴대폰으로 찍은 사진을 그대로 올리면 자동으로 용량을 줄여서 저장해요.</div>
+        <label>공부 사진 (선택, 최대 10장)</label>
+        <input id="studyImage" type="file" accept="image/*" multiple style="display:none;">
+        <button type="button" class="btn btn-secondary" id="addPhotoBtn" style="width:auto;padding:10px 18px;">📷 사진 추가</button>
+        <div class="hint">한 장씩 추가해도 되고, 여러 장을 한 번에 골라도 돼요. 사진은 자동으로 용량을 줄여서 저장해요.</div>
         <div class="photo-preview" id="photoPreview"></div>
       </div>
       <button type="submit" class="btn" id="submitBtn">기록 남기기</button>
@@ -154,12 +155,21 @@ function renderShell() {
 
   document.getElementById('studyDate').valueAsDate = new Date();
 
+  document.getElementById('addPhotoBtn').addEventListener('click', () => {
+    if (selectedPhotos.length >= MAX_PHOTOS_PER_LOG) {
+      showMsg(`사진은 ${MAX_PHOTOS_PER_LOG}장까지 올릴 수 있어요.`, 'error');
+      return;
+    }
+    document.getElementById('studyImage').click();
+  });
+
   document.getElementById('studyImage').addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
-    const preview = document.getElementById('photoPreview');
-    preview.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
-    preview.innerHTML = files.slice(0, MAX_PHOTOS_PER_LOG).map(f => `<img src="${URL.createObjectURL(f)}" alt="">`).join('')
-      + (files.length > MAX_PHOTOS_PER_LOG ? `<div class="hint" style="color:var(--red);">10장까지만 올릴 수 있어요. ${files.length}장을 골랐어요.</div>` : '');
+    const room = MAX_PHOTOS_PER_LOG - selectedPhotos.length;
+    files.slice(0, room).forEach(f => selectedPhotos.push({ file: f, url: URL.createObjectURL(f) }));
+    if (files.length > room) showMsg(`사진은 ${MAX_PHOTOS_PER_LOG}장까지만 올릴 수 있어서 ${files.length - room}장은 빠졌어요.`, 'error');
+    e.target.value = '';
+    renderPhotoPreview();
   });
 
   document.getElementById('logForm').addEventListener('submit', async (e) => {
@@ -173,7 +183,7 @@ function renderShell() {
     const content = document.getElementById('studyContent').value.trim();
     const minutesRaw = document.getElementById('minutes').value;
     const minutes_spent = minutesRaw ? parseInt(minutesRaw, 10) : null;
-    const originals = Array.from(document.getElementById('studyImage').files || []);
+    const originals = selectedPhotos.map(p => p.file);
     const resetBtn = () => { submitBtn.disabled = false; submitBtn.textContent = '기록 남기기'; };
 
     if (originals.length > MAX_PHOTOS_PER_LOG) {
@@ -239,7 +249,7 @@ function renderShell() {
       if (imgError && uploadedPaths.length > 1) {
         showMsg('기록은 저장됐지만 두 번째 사진부터는 저장하지 못했어요: ' + imgError.message, 'error');
         document.getElementById('logForm').reset();
-        document.getElementById('photoPreview').innerHTML = '';
+        clearSelectedPhotos();
         document.getElementById('studyDate').valueAsDate = new Date();
         await loadLogs();
         return;
@@ -248,10 +258,36 @@ function renderShell() {
 
     showMsg('기록이 저장되었습니다.', 'success');
     document.getElementById('logForm').reset();
-    document.getElementById('photoPreview').innerHTML = '';
+    clearSelectedPhotos();
     document.getElementById('studyDate').valueAsDate = new Date();
     await loadLogs();
   });
+}
+
+let selectedPhotos = [];
+
+function renderPhotoPreview() {
+  const preview = document.getElementById('photoPreview');
+  preview.innerHTML = selectedPhotos.map((p, i) => `
+    <div class="photo-thumb">
+      <img src="${p.url}" alt="고른 사진 ${i + 1}">
+      <button type="button" data-remove-photo="${i}" aria-label="사진 빼기">×</button>
+    </div>`).join('')
+    + (selectedPhotos.length ? `<div class="hint" style="width:100%;">${selectedPhotos.length}장 골랐어요 (최대 ${MAX_PHOTOS_PER_LOG}장)</div>` : '');
+  preview.querySelectorAll('[data-remove-photo]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.getAttribute('data-remove-photo'), 10);
+      URL.revokeObjectURL(selectedPhotos[i].url);
+      selectedPhotos.splice(i, 1);
+      renderPhotoPreview();
+    });
+  });
+}
+
+function clearSelectedPhotos() {
+  selectedPhotos.forEach(p => URL.revokeObjectURL(p.url));
+  selectedPhotos = [];
+  renderPhotoPreview();
 }
 
 function showMsg(text, type) {
