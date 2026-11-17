@@ -268,8 +268,18 @@ function bindCoachEditors(container, onPublished) {
         btn.disabled = false;
         btn.textContent = originalText;
         if (error) { alert('저장하지 못했습니다: ' + error.message); return; }
-        editor.querySelector('[data-feedback-status]').innerHTML = feedbackStatusHtml(row);
+        const statusEl = editor.querySelector('[data-feedback-status]');
+        statusEl.innerHTML = feedbackStatusHtml(row);
         if (status === 'published') {
+          statusEl.insertAdjacentHTML('beforeend', ' <span class="hint" data-mail-status>✉️ 알림 메일 보내는 중...</span>');
+          notifyParent(logId).then(({ result, error }) => {
+            const mailEl = statusEl.querySelector('[data-mail-status]');
+            if (!mailEl) return;
+            if (result === 'sent') mailEl.textContent = '✉️ 학부모님께 알림 메일 발송';
+            else if (result === 'skipped') mailEl.textContent = '✉️ 이미 알림 메일을 보냈어요';
+            else if (result === 'off') mailEl.remove();
+            else { mailEl.style.color = 'var(--red)'; mailEl.textContent = '✉️ 알림 메일 실패: ' + (NOTIFY_ERROR_TEXT[error] || error || '알 수 없는 오류') + ' (코칭은 저장됨)'; }
+          });
           const draftBtn = editor.querySelector('[data-save-feedback="draft"]');
           if (draftBtn) draftBtn.remove();
           btn.textContent = '수정해서 다시 보내기';
