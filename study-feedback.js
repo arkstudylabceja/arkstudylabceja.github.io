@@ -77,7 +77,7 @@ function renderPublishedFeedback(log) {
 
 // 학부모 알림 메일 (Google Apps Script 웹 앱 주소)
 // 비어 있으면 메일은 보내지 않고 코칭만 저장됨.
-const PARENT_NOTIFY_URL = '';
+const PARENT_NOTIFY_URL = 'https://script.google.com/macros/s/AKfycbxu6gpzWQjyPEyq92Z-989tB7TUgJnL3kb88DmxQXHl3FvEG2mCNRfK1jL97NMvsaV2/exec';
 
 // 코칭을 보낸 뒤 학부모에게 알림 메일 요청. 결과: 'sent' | 'skipped' | 'off' | 'failed'
 async function notifyParent(logId) {
