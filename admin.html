@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="app-style.css">
+<link rel="stylesheet" href="app-style.css?v=20261117c">
 </head>
 <body>
 
@@ -91,6 +91,7 @@ async function init() {
 function roleLabel(role) {
   if (role === 'admin') return '관리자';
   if (role === 'parent') return '학부모';
+  if (role === 'analyst') return 'AI 분석';
   return '학생';
 }
 
@@ -191,7 +192,21 @@ async function toggleLogs(studentId, btn) {
   btn.closest('tr').after(tr);
 }
 
+async function attachAiDrafts(logs) {
+  const ids = logs.map(l => l.id);
+  if (!ids.length) return logs;
+  const { data, error } = await sb
+    .from('study_log_ai_drafts')
+    .select('log_id, draft_for_parent, teacher_notes, created_at')
+    .in('log_id', ids);
+  if (error || !data) return logs;
+  const byId = {};
+  data.forEach(d => { byId[d.log_id] = d; });
+  return logs.map(l => ({ ...l, aiDraft: byId[l.id] || null }));
+}
+
 async function withImageUrls(logs) {
+  logs = await attachAiDrafts(logs);
   return Promise.all(logs.map(async log => {
     let imageUrl = null;
     if (log.image_path) {
@@ -222,6 +237,9 @@ function renderCoachLog(log, studentName) {
   const fb = feedbackOf(log);
   const published = fb && fb.status === 'published';
   const hasFeedbackTable = Object.prototype.hasOwnProperty.call(log, 'study_log_feedback');
+  const ai = log.aiDraft;
+  const useAiDraft = ai && !(fb && fb.body);
+  const textareaValue = fb && fb.body ? fb.body : (ai ? ai.draft_for_parent : '');
   return `
     <div class="log-entry" style="margin-bottom:10px;">
       <div class="log-main">
@@ -231,8 +249,9 @@ function renderCoachLog(log, studentName) {
         ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="학생 개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
         ${hasFeedbackTable ? `
         <div class="coach-editor" data-log-id="${log.id}">
-          <label>💬 선생님 코칭</label>
-          <textarea data-feedback-text placeholder="학부모님께 보낼 코칭을 적어주세요">${escapeHtml(fb ? fb.body || '' : '')}</textarea>
+          ${ai && ai.teacher_notes ? `<div class="ai-notes"><div class="ai-notes-title">🤖 AI 분석 메모 <span>선생님만 보여요</span></div><div class="ai-notes-body">${escapeHtml(ai.teacher_notes)}</div></div>` : ''}
+          <label>💬 선생님 코칭${useAiDraft ? ' <span class="ai-tag">🤖 AI 초안이 들어 있어요. 확인하고 고쳐서 보내주세요</span>' : ''}</label>
+          <textarea data-feedback-text placeholder="학부모님께 보낼 코칭을 적어주세요">${escapeHtml(textareaValue)}</textarea>
           <div class="coach-actions">
             ${published ? '' : '<button type="button" class="btn-small" data-save-feedback="draft">임시 저장</button>'}
             <button type="button" class="btn-small coach-send" data-save-feedback="published">${published ? '수정해서 다시 보내기' : '학부모님께 보내기'}</button>
