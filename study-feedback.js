@@ -104,3 +104,55 @@ const NOTIFY_ERROR_TEXT = {
   not_logged_in: '다시 로그인해주세요',
   not_published: '코칭이 아직 저장되지 않았어요'
 };
+
+// ---------------------------------------------------------------------------
+// 여러 장 사진 (020 SQL: study_log_images)
+// ---------------------------------------------------------------------------
+const STUDY_IMAGE_BUCKET = 'study-log-images';
+const MAX_PHOTOS_PER_LOG = 10;
+const IMAGES_EMBED = 'study_log_images(image_path, sort_order)';
+const FEEDBACK_EMBED_PUBLIC = 'study_log_feedback(body, status, published_at)';
+
+// 붙여서 불러올 항목(embeds)이 아직 데이터베이스에 없으면 하나씩 빼고 다시 시도
+async function selectWithEmbeds(buildQuery, baseColumns, embeds) {
+  let list = embeds.slice();
+  while (true) {
+    const cols = [baseColumns].concat(list).join(', ');
+    const res = await buildQuery(cols);
+    if (!res.error || list.length === 0) return res;
+    list = list.slice(0, -1);
+  }
+}
+
+// 기록의 사진 경로 목록 (여러 장 표 → 없으면 예전 한 장)
+function imagePathsOf(log) {
+  const rows = Array.isArray(log.study_log_images) ? log.study_log_images.slice() : [];
+  if (rows.length) {
+    rows.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    return rows.map(r => r.image_path);
+  }
+  return log.image_path ? [log.image_path] : [];
+}
+
+// 기록마다 사진 주소(imageUrls) 붙이기
+async function attachImageUrls(logs) {
+  return Promise.all(logs.map(async log => {
+    const paths = imagePathsOf(log);
+    const urls = await Promise.all(paths.map(async p => {
+      const { data } = await sb.storage.from(STUDY_IMAGE_BUCKET).createSignedUrl(p, 3600);
+      return data ? data.signedUrl : null;
+    }));
+    return { ...log, imagePaths: paths, imageUrls: urls.filter(Boolean) };
+  }));
+}
+
+// 사진 여러 장 보여주기
+function renderLogImages(urls, alt) {
+  if (!urls || !urls.length) return '';
+  if (urls.length === 1) {
+    return `<a href="${urls[0]}" target="_blank" rel="noopener"><img src="${urls[0]}" alt="${alt}" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>`;
+  }
+  return `<div class="photo-grid">${urls.map((u, i) =>
+    `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="${alt} ${i + 1}"></a>`).join('')}</div>
+    <div class="hint">사진 ${urls.length}장 · 누르면 크게 보여요</div>`;
+}

@@ -5,7 +5,7 @@ ARK STUDY LAB - 자동 분석 도구 (분석 전용 계정으로 동작)
 사용법:
   ARK_ANALYST_EMAIL=... ARK_ANALYST_PASSWORD=... python3 ai_analyst.py fetch OUT_DIR
       → 초안이 필요한 기록을 OUT_DIR/pending.json 에 저장하고,
-        공부 사진을 OUT_DIR/<log_id>.<확장자> 로 내려받음
+        공부 사진(여러 장)을 OUT_DIR/<log_id>_<번호>.<확장자> 로 내려받음 (image_files)
   ARK_ANALYST_EMAIL=... ARK_ANALYST_PASSWORD=... python3 ai_analyst.py save DRAFTS_JSON
       → [{"log_id": ..., "draft_for_parent": ..., "teacher_notes": ...}, ...] 를 저장
 
@@ -57,26 +57,25 @@ def fetch(out_dir):
     rows = request("POST", "/rest/v1/rpc/get_logs_needing_ai_draft", token,
                    body={"max_days": int(os.environ.get("ARK_MAX_DAYS", "7")), "max_rows": 30}) or []
     for row in rows:
-        row["image_file"] = None
-        path = row.get("image_path")
-        if not path:
-            continue
-        signed = request("POST", f"/storage/v1/object/sign/{BUCKET}/{urllib.parse.quote(path)}", token,
-                         body={"expiresIn": 600})
-        url = signed.get("signedURL") or signed.get("signedUrl")
-        if not url:
-            continue
-        if not url.startswith("/storage/v1"):
-            url = "/storage/v1" + url
-        content = request("GET", url, raw=True)
-        ext = os.path.splitext(path)[1] or ".jpg"
-        file_path = os.path.join(out_dir, f"{row['log_id']}{ext}")
-        with open(file_path, "wb") as f:
-            f.write(content)
-        row["image_file"] = file_path
+        paths = row.get("image_paths") or ([row["image_path"]] if row.get("image_path") else [])
+        row["image_files"] = []
+        for n, path in enumerate(paths, start=1):
+            signed = request("POST", f"/storage/v1/object/sign/{BUCKET}/{urllib.parse.quote(path)}", token,
+                             body={"expiresIn": 600})
+            url = signed.get("signedURL") or signed.get("signedUrl")
+            if not url:
+                continue
+            if not url.startswith("/storage/v1"):
+                url = "/storage/v1" + url
+            content = request("GET", url, raw=True)
+            ext = os.path.splitext(path)[1] or ".jpg"
+            file_path = os.path.join(out_dir, f"{row['log_id']}_{n}{ext}")
+            with open(file_path, "wb") as f:
+                f.write(content)
+            row["image_files"].append(file_path)
     with open(os.path.join(out_dir, "pending.json"), "w", encoding="utf-8") as f:
         json.dump(rows, f, ensure_ascii=False, indent=2)
-    print(f"초안이 필요한 기록 {len(rows)}건, 사진 {sum(1 for r in rows if r['image_file'])}장 → {out_dir}")
+    print(f"초안이 필요한 기록 {len(rows)}건, 사진 {sum(len(r['image_files']) for r in rows)}장 → {out_dir}")
 
 
 def save(drafts_path):

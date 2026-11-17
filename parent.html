@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학부모 강의실 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="app-style.css">
+<link rel="stylesheet" href="app-style.css?v=20261117d">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
-<script src="study-feedback.js?v=20261117b"></script>
+<script src="study-feedback.js?v=20261117d"></script>
 <script>
 const contentEl = document.getElementById('content');
 const IMAGE_BUCKET = 'study-log-images';
@@ -171,12 +171,12 @@ async function loadChildConsent() {
 
 async function loadChildLogs() {
   const el = document.getElementById('childLogs');
-  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
+  const { data: logs, error } = await selectWithEmbeds(columns => sb
     .from('study_logs')
     .select(columns)
     .order('study_date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(5), 'id, study_date, subject, content, minutes_spent, image_path, profiles(name)');
+    .limit(5), 'id, study_date, subject, content, minutes_spent, image_path, profiles(name)', [FEEDBACK_EMBED_PUBLIC, IMAGES_EMBED]);
 
   if (error) {
     el.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${error.message}</p>`;
@@ -188,14 +188,7 @@ async function loadChildLogs() {
     return;
   }
 
-  const logsWithImages = await Promise.all(logs.map(async log => {
-    let imageUrl = null;
-    if (log.image_path) {
-      const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
-      imageUrl = data ? data.signedUrl : null;
-    }
-    return { ...log, imageUrl };
-  }));
+  const logsWithImages = await attachImageUrls(logs);
 
   el.innerHTML = logsWithImages.map(log => `
     <div class="log-entry">
@@ -203,7 +196,7 @@ async function loadChildLogs() {
         <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}${log.profiles ? ' · ' + escapeHtml(log.profiles.name) : ''}</div>
         <div class="log-content">${escapeHtml(log.content)}</div>
         ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
-        ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="자녀 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
+        ${renderLogImages(log.imageUrls, '자녀 공부 사진')}
         ${renderPublishedFeedback(log)}
       </div>
     </div>

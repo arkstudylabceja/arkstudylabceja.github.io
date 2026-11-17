@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="app-style.css?v=20261117c">
+<link rel="stylesheet" href="app-style.css?v=20261117d">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
-<script src="study-feedback.js?v=20261117b"></script>
+<script src="study-feedback.js?v=20261117d"></script>
 <script>
 const contentEl = document.getElementById('content');
 let allProfiles = [];
@@ -36,6 +36,7 @@ let myAdminId = null;
 const IMAGE_BUCKET = 'study-log-images';
 const LOG_COLUMNS = 'id, student_id, study_date, subject, content, minutes_spent, image_path, created_at';
 const ADMIN_FEEDBACK_COLUMNS = 'body, status, published_at, updated_at';
+const ADMIN_EMBEDS = ['study_log_feedback(' + ADMIN_FEEDBACK_COLUMNS + ')', IMAGES_EMBED];
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -162,13 +163,13 @@ async function toggleLogs(studentId, btn) {
 
   btn.textContent = '불러오는 중...';
 
-  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
+  const { data: logs, error } = await selectWithEmbeds(columns => sb
     .from('study_logs')
     .select(columns)
     .eq('student_id', studentId)
     .order('study_date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(10), LOG_COLUMNS, ADMIN_FEEDBACK_COLUMNS);
+    .limit(10), LOG_COLUMNS, ADMIN_EMBEDS);
 
   btn.textContent = '개인 자료실 닫기';
 
@@ -207,14 +208,7 @@ async function attachAiDrafts(logs) {
 
 async function withImageUrls(logs) {
   logs = await attachAiDrafts(logs);
-  return Promise.all(logs.map(async log => {
-    let imageUrl = null;
-    if (log.image_path) {
-      const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrl(log.image_path, 3600);
-      imageUrl = data ? data.signedUrl : null;
-    }
-    return { ...log, imageUrl };
-  }));
+  return attachImageUrls(logs);
 }
 
 function studentNameOf(studentId) {
@@ -246,7 +240,7 @@ function renderCoachLog(log, studentName) {
         <div class="log-date">${log.study_date}${log.subject ? ' · ' + escapeHtml(log.subject) : ''}${studentName ? ' · <strong>' + escapeHtml(studentName) + '</strong>' : ''}</div>
         <div class="log-content">${escapeHtml(log.content)}</div>
         ${log.minutes_spent ? `<div class="log-minutes">⏱ ${log.minutes_spent}분</div>` : ''}
-        ${log.imageUrl ? `<a href="${log.imageUrl}" target="_blank" rel="noopener"><img src="${log.imageUrl}" alt="학생 개인 자료실 공부 사진" style="display:block;max-width:100%;max-height:420px;margin-top:12px;border-radius:12px;object-fit:contain;"></a>` : ''}
+        ${renderLogImages(log.imageUrls, '학생 개인 자료실 공부 사진')}
         ${hasFeedbackTable ? `
         <div class="coach-editor" data-log-id="${log.id}">
           ${ai && ai.teacher_notes ? `<div class="ai-notes"><div class="ai-notes-title">🤖 AI 분석 메모 <span>선생님만 보여요</span></div><div class="ai-notes-body">${escapeHtml(ai.teacher_notes)}</div></div>` : ''}
@@ -312,11 +306,11 @@ function bindCoachEditors(container, onPublished) {
 async function loadPendingCoaching() {
   const wrap = document.getElementById('pendingCoachWrap');
   if (!wrap) return;
-  const { data: logs, error } = await selectLogsWithFeedback(columns => sb
+  const { data: logs, error } = await selectWithEmbeds(columns => sb
     .from('study_logs')
     .select(columns)
     .order('created_at', { ascending: false })
-    .limit(60), LOG_COLUMNS, ADMIN_FEEDBACK_COLUMNS);
+    .limit(60), LOG_COLUMNS, ADMIN_EMBEDS);
 
   if (error) {
     wrap.innerHTML = `<p class="empty-note">기록을 불러오지 못했습니다: ${escapeHtml(error.message)}</p>`;
