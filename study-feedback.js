@@ -63,7 +63,7 @@ function feedbackEscape(str) {
   return div.innerHTML;
 }
 
-// 학생·학부모 화면용: 보낸 피드백 보여주기
+// 학부모 화면용: 보낸 피드백 보여주기
 function renderPublishedFeedback(log) {
   const fb = feedbackOf(log);
   if (!fb || fb.status !== 'published' || !fb.body) return '';
