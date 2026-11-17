@@ -74,3 +74,33 @@ function renderPublishedFeedback(log) {
       <div class="feedback-body">${feedbackEscape(fb.body)}</div>
     </div>`;
 }
+
+// 학부모 알림 메일 (Google Apps Script 웹 앱 주소)
+// 비어 있으면 메일은 보내지 않고 코칭만 저장됨.
+const PARENT_NOTIFY_URL = '';
+
+// 코칭을 보낸 뒤 학부모에게 알림 메일 요청. 결과: 'sent' | 'skipped' | 'off' | 'failed'
+async function notifyParent(logId) {
+  if (!PARENT_NOTIFY_URL) return { result: 'off' };
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { result: 'failed', error: 'not_logged_in' };
+    const res = await fetch(PARENT_NOTIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ log_id: logId, access_token: session.access_token })
+    });
+    const json = await res.json();
+    if (json.ok) return { result: json.skipped ? 'skipped' : 'sent' };
+    return { result: 'failed', error: json.error };
+  } catch (e) {
+    return { result: 'failed', error: String(e && e.message || e) };
+  }
+}
+
+const NOTIFY_ERROR_TEXT = {
+  no_parent_email: '학생 계정에 학부모 이메일이 없어요',
+  not_admin: '관리자 계정이 아니에요',
+  not_logged_in: '다시 로그인해주세요',
+  not_published: '코칭이 아직 저장되지 않았어요'
+};
