@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기본 과정 신청 | ARK STUDY LAB</title>
+<meta name="description" content="학부모 강의 3회와 학생 강의 1회 후 3개월 동안 매일 공부 기록을 확인하고 주 1회 코칭을 드리는 ARK STUDY LAB 기본 과정 신청서입니다.">
+<link rel="stylesheet" href="app-style.css">
+<style>
+  .course-card{max-width:720px;}
+  .course-card h1{font-size:26px;margin-bottom:10px;}
+  .lead{font-size:15px;color:var(--text);margin-bottom:24px;line-height:1.8;}
+  .info-box{background:#fbf3d9;border-radius:12px;padding:20px 22px;margin-bottom:18px;}
+  .info-box h2{font-size:16px;color:var(--navy-deep);margin-bottom:10px;}
+  .info-box ul{list-style:none;}
+  .info-box li{font-size:14px;line-height:1.8;padding-left:16px;position:relative;color:var(--navy-deep);}
+  .info-box li::before{content:"·";position:absolute;left:4px;font-weight:900;}
+  .info-box.plain{background:#f8f9fc;border:1px solid #e2e5ee;}
+  .price-row{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 4px;}
+  .price-pill{background:var(--white);border:1.5px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--navy-deep);}
+  .price-pill b{display:block;font-size:17px;}
+  .section-title{font-size:17px;font-weight:800;color:var(--navy-deep);margin:30px 0 14px;padding-top:22px;border-top:1px solid #eceef3;}
+  .form-group select{
+    width:100%;padding:12px 14px;border:1.5px solid #e2e5ee;border-radius:9px;
+    font-size:14px;font-family:inherit;color:var(--text);background:#fbfbfd;
+  }
+  .form-group select:focus{outline:none;border-color:var(--gold);background:var(--white);}
+  .choice-list{display:grid;gap:8px;}
+  .choice-list label{
+    display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;color:var(--text);
+    padding:11px 14px;border:1.5px solid #e2e5ee;border-radius:9px;background:#fbfbfd;cursor:pointer;margin:0;
+  }
+  .choice-list input{width:auto;margin-top:4px;}
+  .req{color:var(--red);margin-left:2px;}
+  .submit-note{font-size:12.5px;color:var(--muted);margin-top:10px;text-align:center;}
+  @media (max-width:720px){
+    .card.course-card{padding:28px 20px;}
+    .form-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+</div>
+
+<main class="page-wrap top">
+  <section class="card course-card">
+    <h1>기본 과정 신청</h1>
+    <p class="lead">부모님이 먼저 배우고, 아이는 매일 실행하고, 선생님은 매일 봅니다.<br>방학부터 새 학기 첫 달까지, 아이가 스스로 공부할 수 있을 때까지 함께합니다.</p>
+
+    <div class="info-box">
+      <h2>과정 안내</h2>
+      <ul>
+        <li>학부모 강의 3회 + 학생 강의 1회 (회당 1~2시간, 온라인)</li>
+        <li>강의 후 3개월: 아이가 매일 공부한 내용을 홈페이지에 올리면 매일 확인하고, 일주일에 한 번 코칭을 보내드립니다. 방향이 어긋나 보이면 바로 연락드립니다.</li>
+        <li>시작: 2026년 12월 7일이 있는 주 (강의 시간은 신청하신 가정의 일정을 모아 정합니다)</li>
+        <li>정원: 9가정 / 신청 마감: 12월 4일(금), 정원이 차면 먼저 마감</li>
+        <li>상담 가정 우선 신청: 12월 2일(수)까지</li>
+      </ul>
+      <div class="price-row">
+        <div class="price-pill">정가<b>50만 원</b></div>
+        <div class="price-pill">상담 가정<b>45만 원</b></div>
+        <div class="price-pill">나눠 내기<b>월 18만 원 × 3</b></div>
+      </div>
+    </div>
+
+    <div class="info-box plain">
+      <h2>방학 오전 집중 실습 (선택)</h2>
+      <ul>
+        <li>기본 과정 참여 가정 중 원하는 가정만 추가로 신청할 수 있어요.</li>
+        <li>1월, 오전 8시~12시 / 8회 30만 원 / 선생님 날과 부모님 날이 번갈아 진행됩니다.</li>
+        <li>기본 과정을 2~3주 해 보신 뒤 12월 말까지 정하시면 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="info-box plain">
+      <h2>환불 기준</h2>
+      <ul>
+        <li>강의 시작 전: 전액 환불</li>
+        <li>강의 후 첫 달 안: 강의료 10만 원을 뺀 뒤 남은 기간만큼 환불</li>
+        <li>그 이후: 월 단위로 남은 기간만큼 환불</li>
+      </ul>
+    </div>
+
+    <form action="https://formsubmit.co/chose1212@naver.com" method="POST">
+      <input type="hidden" name="_subject" value="[ARK STUDY LAB] 기본 과정 신청">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_next" value="https://arkstudylabceja.github.io/thanks.html">
+      <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+
+      <div class="section-title">신청 정보</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>학부모 성함<span class="req">*</span></label>
+          <input type="text" name="학부모 성함" required placeholder="이름을 입력해주세요">
+        </div>
+        <div class="form-group">
+          <label>연락처<span class="req">*</span></label>
+          <input type="tel" name="연락처" required placeholder="010-0000-0000">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>학생 학년<span class="req">*</span></label>
+          <select name="학생 학년" required>
+            <option value="">선택해주세요</option>
+            <option>초등 5학년 이하</option>
+            <option>초등 6학년</option>
+            <option>중학교 1학년</option>
+            <option>중학교 2학년</option>
+            <option>중학교 3학년</option>
+            <option>고등학생</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>이메일 (선택)</label>
+          <input type="email" name="이메일" placeholder="example@email.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>ARK STUDY LAB 상담을 받으셨나요?<span class="req">*</span></label>
+        <div class="choice-list">
+          <label><input type="radio" name="상담 가정 여부" value="상담 받음 (45만 원)" required> 네, 상담을 받았어요 (45만 원)</label>
+          <label><input type="radio" name="상담 가정 여부" value="상담 받지 않음 (50만 원)"> 아니요 (50만 원)</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>납부 방식<span class="req">*</span></label>
+        <div class="choice-list">
+          <label><input type="radio" name="납부 방식" value="한 번에 납부" required> 한 번에 납부</label>
+          <label><input type="radio" name="납부 방식" value="월 18만 원씩 3번 나눠 내기"> 월 18만 원씩 3번 나눠 내기 (총 54만 원)</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>학부모 강의에 참여 가능한 시간을 모두 골라주세요<span class="req">*</span></label>
+        <div class="choice-list" id="timeChoices">
+          <label><input type="checkbox" name="가능한 강의 시간" value="평일 오전 (10시~12시)"> 평일 오전 (10시~12시)</label>
+          <label><input type="checkbox" name="가능한 강의 시간" value="평일 오후 (1시~5시)"> 평일 오후 (1시~5시)</label>
+          <label><input type="checkbox" name="가능한 강의 시간" value="평일 저녁 (8시~10시)"> 평일 저녁 (8시~10시)</label>
+          <label><input type="checkbox" name="가능한 강의 시간" value="토요일 오전"> 토요일 오전</label>
+          <label><input type="checkbox" name="가능한 강의 시간" value="토요일 오후"> 토요일 오후</label>
+        </div>
+        <p class="hint">가장 많은 가정이 가능한 시간으로 정해 12월 4일까지 안내드립니다.</p>
+      </div>
+
+      <div class="form-group">
+        <label>방학 오전 집중 실습(선택, 30만 원)에 관심이 있으신가요?</label>
+        <div class="choice-list">
+          <label><input type="radio" name="방학 오전 집중 실습" value="관심 있음"> 관심 있어요</label>
+          <label><input type="radio" name="방학 오전 집중 실습" value="과정 중에 결정"> 기본 과정을 해 보고 정할게요</label>
+          <label><input type="radio" name="방학 오전 집중 실습" value="참여하지 않음"> 참여하지 않을게요</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>지금 가장 고민되는 점이나 이 과정에서 기대하는 점<span class="req">*</span></label>
+        <textarea name="고민과 기대" required placeholder="아이의 공부 습관, 가정에서 어려운 점 등을 자유롭게 적어주세요"></textarea>
+      </div>
+
+      <div class="section-title">확인 및 동의</div>
+
+      <div class="consent-box">
+        <label><input type="checkbox" name="참여 확인" value="확인" required> <span>부모님이 강의에 참여하고, 3개월 동안 아이의 실행을 함께 살피는 과정임을 확인했습니다.<span class="req">*</span></span></label>
+        <label><input type="checkbox" name="환불 기준 확인" value="확인" required> <span>위 환불 기준을 확인했습니다.<span class="req">*</span></span></label>
+        <label><input type="checkbox" name="개인정보 동의" value="동의" required> <span><a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a>을 확인하고, 과정 신청과 연락을 위한 개인정보 처리에 동의합니다.<span class="req">*</span></span></label>
+      </div>
+
+      <button type="submit" class="btn" style="margin-top:22px;">기본 과정 신청하기</button>
+      <p class="submit-note">신청 내용을 확인한 뒤 입금 안내와 강의 일정을 개별로 연락드립니다.<br>입금이 확인되면 자리가 확정됩니다.</p>
+    </form>
+  </section>
+</main>
+
+<script>
+  // 강의 시간은 하나 이상 고르도록 확인
+  document.querySelector('form').addEventListener('submit', function (e) {
+    var checked = document.querySelectorAll('#timeChoices input:checked').length;
+    if (checked === 0) {
+      e.preventDefault();
+      alert('학부모 강의에 참여 가능한 시간을 하나 이상 골라주세요.');
+      document.getElementById('timeChoices').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+  });
+</script>
+</body>
+</html>
