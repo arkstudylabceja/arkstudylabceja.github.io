@@ -80,3 +80,12 @@ function talkBubble({ mine, who, body, at }) {
       <div class="talk-bubble">${escapeHtml(body)}</div>
     </div>`;
 }
+
+// 상담 글(질문·답변)을 편지처럼 위에서 아래로 표시
+function talkLetter({ teacher, who, body, at }) {
+  return `
+    <div class="talk-letter ${teacher ? 'teacher' : ''}">
+      <div class="talk-letter-head"><strong>${escapeHtml(who)}</strong><span>${talkTime(at)}</span></div>
+      <div class="talk-letter-body">${escapeHtml(body)}</div>
+    </div>`;
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>상담함 | ARK STUDY LAB</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="app-style.css?v=20261120a">
+<link rel="stylesheet" href="app-style.css?v=20261120b">
 </head>
 <body>
 
@@ -27,12 +27,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase-client.js"></script>
-<script src="talk.js?v=20261120a"></script>
+<script src="talk.js?v=20261120b"></script>
 <script>
 const contentEl = document.getElementById('content');
 let me = null;
 let filter = 'waiting';
-let channel = null;
 const ROLE_LABEL = { parent: '학부모', student: '학생' };
 
 async function init() {
@@ -43,7 +42,6 @@ async function init() {
 }
 
 async function showList() {
-  stopRealtime();
   history.replaceState(null, '', 'admin-consult.html');
   contentEl.innerHTML = `
     <h1>💬 상담함</h1>
@@ -130,7 +128,7 @@ async function showThread(threadId) {
       </div>
       ${talkStatusBadge(thread.status, true)}
     </div>
-    <div class="talk-chat" id="chat"><div class="loading">불러오는 중...</div></div>
+    <div class="talk-thread" id="chat"><div class="loading">불러오는 중...</div></div>
     <div class="talk-compose">
       <textarea id="replyBody" rows="4" maxlength="3000" placeholder="답변을 적어 주세요."></textarea>
       <button class="btn-small" id="replyBtn">답변 보내기</button>
@@ -150,7 +148,6 @@ async function showThread(threadId) {
   });
 
   await loadMessages(thread.id, author.name || '상대방');
-  startRealtime(thread.id, author.name || '상대방');
 }
 
 async function loadMessages(threadId, authorName) {
@@ -162,14 +159,13 @@ async function loadMessages(threadId, authorName) {
     .eq('thread_id', threadId)
     .order('created_at');
   if (error) { chat.innerHTML = `<p class="empty-note">${escapeHtml(error.message)}</p>`; return; }
-  chat.innerHTML = data.map(m => talkBubble({
-    mine: m.from_teacher,
-    who: m.from_teacher ? '선생님(나)' : authorName,
+  chat.innerHTML = data.map(m => talkLetter({
+    teacher: m.from_teacher,
+    who: m.from_teacher ? '선생님 답변' : authorName + '님 질문',
     body: m.body,
     at: m.created_at,
   })).join('') || '<p class="empty-note">메시지가 없어요.</p>';
-  chat.scrollTop = chat.scrollHeight;
-}
+  }
 
 async function sendReply(threadId) {
   const ta = document.getElementById('replyBody');
@@ -184,17 +180,6 @@ async function sendReply(threadId) {
   showThread(threadId);
 }
 
-function startRealtime(threadId, authorName) {
-  stopRealtime();
-  channel = sb.channel('admin-consult-' + threadId)
-    .on('postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'consult_messages', filter: 'thread_id=eq.' + threadId },
-      () => loadMessages(threadId, authorName))
-    .subscribe();
-}
-function stopRealtime() {
-  if (channel) { sb.removeChannel(channel); channel = null; }
-}
 
 init();
 </script>

@@ -306,3 +306,10 @@ a{text-decoration:none;color:inherit;}
   .talk-bubble-wrap{max-width:92%;}
   .talk-head{flex-direction:column;}
 }
+
+.talk-thread{margin-bottom:14px;}
+.talk-letter{border:1px solid #eceef3;border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--white);}
+.talk-letter.teacher{background:#fbf8ec;border-color:#efe3b8;}
+.talk-letter-head{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);margin-bottom:8px;}
+.talk-letter-head strong{color:var(--navy-deep);}
+.talk-letter-body{white-space:pre-wrap;word-break:break-word;font-size:14.5px;line-height:1.75;}
