@@ -249,3 +249,60 @@ a{text-decoration:none;color:inherit;}
 .photo-thumb{position:relative;}
 .photo-thumb img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block;}
 .photo-thumb button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--navy-deep);color:#fff;font-size:14px;line-height:22px;cursor:pointer;padding:0;}
+
+/* ---------- 상담·이야기방 ---------- */
+.status-badge.muted{background:#f2f2f2;color:var(--muted);}
+.talk-badge{margin-bottom:0;white-space:nowrap;font-size:12px;padding:4px 10px;}
+.talk-h2{margin:32px 0 12px;font-size:18px;color:var(--navy-deep);}
+.talk-msg{color:var(--red);font-size:13.5px;margin-top:10px;min-height:1em;}
+.talk-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border:1px solid #eceef3;border-radius:12px;margin-bottom:10px;background:var(--white);
+}
+.talk-row:hover{border-color:var(--gold);}
+.talk-row-main{min-width:0;flex:1;}
+.talk-row-title{font-weight:700;color:var(--navy-deep);word-break:break-word;}
+.talk-row-preview{color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.talk-back{background:none;border:none;color:var(--muted);cursor:pointer;font-family:inherit;font-size:14px;margin-bottom:12px;padding:0;}
+.talk-back:hover{color:var(--navy);}
+.talk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.talk-head h1{font-size:22px;color:var(--navy-deep);word-break:break-word;}
+.talk-chat{
+  border:1px solid #eceef3;border-radius:12px;background:#fbfbfd;padding:16px;
+  max-height:60vh;overflow-y:auto;margin-bottom:14px;
+}
+.talk-bubble-wrap{display:flex;flex-direction:column;margin-bottom:14px;max-width:82%;}
+.talk-bubble-wrap.mine{margin-left:auto;align-items:flex-end;}
+.talk-bubble-wrap.theirs{margin-right:auto;align-items:flex-start;}
+.talk-who{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.talk-bubble{
+  padding:10px 14px;border-radius:14px;white-space:pre-wrap;word-break:break-word;font-size:14.5px;
+}
+.talk-bubble-wrap.mine .talk-bubble{background:var(--navy);color:var(--white);border-bottom-right-radius:4px;}
+.talk-bubble-wrap.theirs .talk-bubble{background:var(--white);border:1px solid #e2e5ee;border-bottom-left-radius:4px;}
+.talk-compose{display:flex;gap:10px;align-items:flex-end;}
+.talk-compose textarea, .talk-textarea{
+  flex:1;width:100%;padding:12px 14px;border:1.5px solid #e2e5ee;border-radius:10px;
+  font-family:inherit;font-size:14.5px;resize:vertical;background:#fbfbfd;
+}
+.talk-compose textarea:focus, .talk-textarea:focus{outline:none;border-color:var(--gold);background:var(--white);}
+.talk-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.talk-filter button{
+  border:1px solid #e2e5ee;background:var(--white);border-radius:20px;padding:6px 14px;
+  font-family:inherit;font-size:13px;cursor:pointer;color:var(--text);
+}
+.talk-filter button.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.talk-post-body{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.75;margin:8px 0 20px;}
+.talk-comment{padding:12px 0;border-bottom:1px solid #eceef3;}
+.talk-comment-body{white-space:pre-wrap;word-break:break-word;font-size:14.5px;}
+.talk-meta{font-size:12.5px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.talk-link-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-family:inherit;font-size:12.5px;text-decoration:underline;padding:0;}
+.talk-link-btn:hover{color:var(--red);}
+.talk-hidden{opacity:.55;}
+.talk-notice{color:var(--gold);font-weight:800;margin-right:6px;}
+.talk-rules{font-size:13px;color:var(--muted);background:#fbfbfd;border:1px solid #eceef3;border-radius:10px;padding:12px 14px;margin-bottom:20px;}
+@media (max-width:600px){
+  .talk-compose{flex-direction:column;align-items:stretch;}
+  .talk-bubble-wrap{max-width:92%;}
+  .talk-head{flex-direction:column;}
+}

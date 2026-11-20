@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학부모 이야기방 | ARK STUDY LAB</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="app-style.css?v=20261120a">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <a href="#" id="homeLink">내 강의실</a>
+    <a href="consult.html" id="consultLink">💬 선생님 상담</a>
+    <span id="userName"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="page-wrap top">
+  <div class="card wide" id="content">
+    <div class="loading">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script src="talk.js?v=20261120a"></script>
+<script>
+const contentEl = document.getElementById('content');
+let me = null;
+let isAdmin = false;
+let channel = null;
+const PAGE_SIZE = 20;
+let pageLimit = PAGE_SIZE;
+
+async function init() {
+  me = await talkRequireProfile(['parent', 'admin']);
+  if (!me) return;
+  isAdmin = me.role === 'admin';
+  document.getElementById('homeLink').href = isAdmin ? 'admin.html' : 'parent.html';
+  if (isAdmin) {
+    const c = document.getElementById('consultLink');
+    c.href = 'admin-consult.html';
+    c.textContent = '💬 상담함';
+  }
+  const postId = new URLSearchParams(location.search).get('p');
+  if (postId) showPost(postId); else showList();
+}
+
+async function showList() {
+  stopRealtime();
+  history.replaceState(null, '', 'community.html');
+  contentEl.innerHTML = `
+    <h1>👪 학부모 이야기방</h1>
+    <p class="sub">아크스터디랩 학부모님들이 함께 고민과 경험을 나누는 공간이에요. 학부모님과 선생님만 볼 수 있어요.</p>
+    <div class="talk-rules">
+      이름은 "김OO 학부모님"처럼 가려서 표시돼요. 서로를 존중하는 말로 이야기해 주시고, 아이 실명·학교명·연락처 같은 개인정보는 적지 말아 주세요.
+      개인적인 상담은 <a href="${isAdmin ? 'admin-consult.html' : 'consult.html'}" style="text-decoration:underline;">선생님 1:1 상담</a>을 이용해 주세요.
+    </div>
+
+    <details class="lesson-box" id="writeBox">
+      <summary style="cursor:pointer;font-weight:700;color:var(--navy-deep);">✏️ 새 글 쓰기</summary>
+      <div style="margin-top:16px;">
+        <div class="form-group">
+          <label for="postTitle">제목</label>
+          <input id="postTitle" maxlength="100" placeholder="예: 중1 아이 영어 단어 공부, 어떻게 도와주세요?">
+        </div>
+        <div class="form-group">
+          <label for="postBody">내용</label>
+          <textarea id="postBody" rows="6" maxlength="5000"></textarea>
+        </div>
+        ${isAdmin ? '<label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin-bottom:12px;"><input type="checkbox" id="postNotice" style="width:auto;"> 공지로 맨 위에 고정</label>' : ''}
+        <button class="btn-small" id="postBtn">올리기</button>
+        <div class="talk-msg" id="postMsg"></div>
+      </div>
+    </details>
+
+    <div id="postList" style="margin-top:20px;"><div class="loading">불러오는 중...</div></div>
+  `;
+  document.getElementById('postBtn').addEventListener('click', createPost);
+  loadPosts();
+}
+
+async function loadPosts() {
+  const el = document.getElementById('postList');
+  const { data, error } = await sb
+    .from('community_posts')
+    .select('id, author_id, author_label, title, body, is_hidden, is_notice, created_at, community_comments(count)')
+    .order('is_notice', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(pageLimit + 1);
+
+  if (error) {
+    el.innerHTML = `<p class="empty-note">${talkSetupError(error)}</p>`;
+    return;
+  }
+  if (!data.length) {
+    el.innerHTML = '<p class="empty-note">아직 글이 없어요. 첫 이야기를 남겨 주세요!</p>';
+    return;
+  }
+  const hasMore = data.length > pageLimit;
+  const rows = data.slice(0, pageLimit);
+  el.innerHTML = rows.map(p => {
+    const count = (p.community_comments && p.community_comments[0] && p.community_comments[0].count) || 0;
+    return `
+    <a class="talk-row ${p.is_hidden ? 'talk-hidden' : ''}" href="community.html?p=${p.id}" data-post="${p.id}">
+      <div class="talk-row-main">
+        <div class="talk-row-title">${p.is_notice ? '<span class="talk-notice">공지</span>' : ''}${escapeHtml(p.title)}${count ? ` <span style="color:var(--gold);">[${count}]</span>` : ''}</div>
+        <div class="talk-row-preview">${escapeHtml(p.body.slice(0, 80))}</div>
+        <div class="talk-meta">${escapeHtml(p.author_label)} · ${talkTime(p.created_at)}${p.is_hidden ? ' · 숨김 처리됨' : ''}</div>
+      </div>
+    </a>`;
+  }).join('') + (hasMore ? '<button class="btn-small" id="moreBtn" style="margin-top:8px;">더 보기</button>' : '');
+
+  el.querySelectorAll('[data-post]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    showPost(a.dataset.post);
+  }));
+  const more = document.getElementById('moreBtn');
+  if (more) more.addEventListener('click', () => { pageLimit += PAGE_SIZE; loadPosts(); });
+}
+
+async function createPost() {
+  const title = document.getElementById('postTitle').value.trim();
+  const body = document.getElementById('postBody').value.trim();
+  const noticeEl = document.getElementById('postNotice');
+  const msg = document.getElementById('postMsg');
+  if (!title || !body) { msg.textContent = '제목과 내용을 모두 적어 주세요.'; return; }
+  const btn = document.getElementById('postBtn');
+  btn.disabled = true;
+  const { data, error } = await sb
+    .from('community_posts')
+    .insert({ title, body, author_id: me.id, is_notice: !!(noticeEl && noticeEl.checked) })
+    .select('id')
+    .single();
+  btn.disabled = false;
+  if (error) { msg.textContent = talkSetupError(error); return; }
+  showPost(data.id);
+}
+
+async function showPost(postId) {
+  history.replaceState(null, '', 'community.html?p=' + postId);
+  contentEl.innerHTML = '<div class="loading">불러오는 중...</div>';
+  const { data: post, error } = await sb
+    .from('community_posts')
+    .select('id, author_id, author_label, title, body, is_hidden, is_notice, created_at')
+    .eq('id', postId)
+    .single();
+
+  if (error || !post) {
+    contentEl.innerHTML = '<p class="empty-note">글을 찾을 수 없어요. 삭제되었거나 숨김 처리된 글일 수 있어요.</p><button class="btn-small" id="backBtn">목록으로</button>';
+    document.getElementById('backBtn').addEventListener('click', showList);
+    return;
+  }
+
+  const mine = post.author_id === me.id;
+  contentEl.innerHTML = `
+    <button class="talk-back" id="backBtn">← 이야기방 목록</button>
+    <div class="${post.is_hidden ? 'talk-hidden' : ''}">
+      <h1 style="font-size:22px;color:var(--navy-deep);word-break:break-word;">${post.is_notice ? '<span class="talk-notice">공지</span>' : ''}${escapeHtml(post.title)}</h1>
+      <div class="talk-meta" style="margin-top:6px;">
+        <span>${escapeHtml(post.author_label)} · ${talkTime(post.created_at)}</span>
+        ${post.is_hidden ? '<span>숨김 처리됨 (다른 학부모님께 보이지 않아요)</span>' : ''}
+        ${isAdmin ? `<button class="talk-link-btn" id="hidePostBtn">${post.is_hidden ? '다시 보이기' : '숨기기'}</button>` : ''}
+        ${isAdmin ? `<button class="talk-link-btn" id="noticePostBtn">${post.is_notice ? '공지 해제' : '공지로 고정'}</button>` : ''}
+        ${mine || isAdmin ? '<button class="talk-link-btn" id="deletePostBtn">삭제</button>' : ''}
+      </div>
+      <div class="talk-post-body">${escapeHtml(post.body)}</div>
+    </div>
+
+    <h2 class="talk-h2" style="margin-top:8px;">댓글</h2>
+    <div id="comments"><div class="loading">불러오는 중...</div></div>
+    ${post.is_hidden && !isAdmin ? '' : `
+    <div class="talk-compose" style="margin-top:14px;">
+      <textarea id="commentBody" rows="2" maxlength="1000" placeholder="따뜻한 댓글을 남겨 주세요."></textarea>
+      <button class="btn-small" id="commentBtn">댓글 달기</button>
+    </div>
+    <div class="talk-msg" id="commentMsg"></div>`}
+  `;
+  document.getElementById('backBtn').addEventListener('click', showList);
+
+  const del = document.getElementById('deletePostBtn');
+  if (del) del.addEventListener('click', async () => {
+    if (!confirm('이 글을 삭제할까요? 댓글도 함께 지워져요.')) return;
+    const { error: e } = await sb.from('community_posts').delete().eq('id', post.id);
+    if (e) { alert('삭제하지 못했어요: ' + e.message); return; }
+    showList();
+  });
+  const hide = document.getElementById('hidePostBtn');
+  if (hide) hide.addEventListener('click', async () => {
+    const { error: e } = await sb.from('community_posts').update({ is_hidden: !post.is_hidden }).eq('id', post.id);
+    if (e) { alert('변경하지 못했어요: ' + e.message); return; }
+    showPost(post.id);
+  });
+  const notice = document.getElementById('noticePostBtn');
+  if (notice) notice.addEventListener('click', async () => {
+    const { error: e } = await sb.from('community_posts').update({ is_notice: !post.is_notice }).eq('id', post.id);
+    if (e) { alert('변경하지 못했어요: ' + e.message); return; }
+    showPost(post.id);
+  });
+  const cbtn = document.getElementById('commentBtn');
+  if (cbtn) cbtn.addEventListener('click', () => addComment(post.id));
+
+  await loadComments(post.id);
+  startRealtime(post.id);
+}
+
+async function loadComments(postId) {
+  const el = document.getElementById('comments');
+  if (!el) return;
+  const { data, error } = await sb
+    .from('community_comments')
+    .select('id, author_id, author_label, body, is_hidden, created_at')
+    .eq('post_id', postId)
+    .order('created_at');
+  if (error) { el.innerHTML = `<p class="empty-note">${talkSetupError(error)}</p>`; return; }
+  if (!data.length) { el.innerHTML = '<p class="empty-note">첫 댓글을 남겨 주세요.</p>'; return; }
+  el.innerHTML = data.map(c => `
+    <div class="talk-comment ${c.is_hidden ? 'talk-hidden' : ''}">
+      <div class="talk-meta">
+        <strong style="color:var(--navy-deep);">${escapeHtml(c.author_label)}</strong>
+        <span>${talkTime(c.created_at)}</span>
+        ${c.is_hidden ? '<span>숨김 처리됨</span>' : ''}
+        ${isAdmin ? `<button class="talk-link-btn" data-hide-comment="${c.id}" data-hidden="${c.is_hidden}">${c.is_hidden ? '다시 보이기' : '숨기기'}</button>` : ''}
+        ${c.author_id === me.id || isAdmin ? `<button class="talk-link-btn" data-del-comment="${c.id}">삭제</button>` : ''}
+      </div>
+      <div class="talk-comment-body">${escapeHtml(c.body)}</div>
+    </div>`).join('');
+
+  el.querySelectorAll('[data-del-comment]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('댓글을 삭제할까요?')) return;
+    const { error: e } = await sb.from('community_comments').delete().eq('id', b.dataset.delComment);
+    if (e) { alert('삭제하지 못했어요: ' + e.message); return; }
+    loadComments(postId);
+  }));
+  el.querySelectorAll('[data-hide-comment]').forEach(b => b.addEventListener('click', async () => {
+    const hidden = b.dataset.hidden === 'true';
+    const { error: e } = await sb.from('community_comments').update({ is_hidden: !hidden }).eq('id', b.dataset.hideComment);
+    if (e) { alert('변경하지 못했어요: ' + e.message); return; }
+    loadComments(postId);
+  }));
+}
+
+async function addComment(postId) {
+  const ta = document.getElementById('commentBody');
+  const body = ta.value.trim();
+  if (!body) return;
+  const btn = document.getElementById('commentBtn');
+  btn.disabled = true;
+  const { error } = await sb.from('community_comments').insert({ post_id: postId, author_id: me.id, body });
+  btn.disabled = false;
+  if (error) { document.getElementById('commentMsg').textContent = talkSetupError(error); return; }
+  ta.value = '';
+  loadComments(postId);
+}
+
+function startRealtime(postId) {
+  stopRealtime();
+  channel = sb.channel('community-' + postId)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'community_comments', filter: 'post_id=eq.' + postId },
+      () => loadComments(postId))
+    .subscribe();
+}
+function stopRealtime() {
+  if (channel) { sb.removeChannel(channel); channel = null; }
+}
+
+init();
+</script>
+</body>
+</html>

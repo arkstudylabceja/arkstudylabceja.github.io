@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>선생님 상담 | ARK STUDY LAB</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="app-style.css?v=20261120a">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ARK <span>STUDY LAB</span></a>
+  <div class="top-actions">
+    <a href="#" id="homeLink">내 강의실</a>
+    <a href="community.html" id="communityLink" style="display:none;">👪 학부모 이야기방</a>
+    <span id="userName"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="page-wrap top">
+  <div class="card wide" id="content">
+    <div class="loading">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase-client.js"></script>
+<script src="talk.js?v=20261120a"></script>
+<script>
+const contentEl = document.getElementById('content');
+let me = null;
+let channel = null;
+
+async function init() {
+  me = await talkRequireProfile(['parent', 'student']);
+  if (!me) return;
+
+  document.getElementById('homeLink').href = me.role === 'parent' ? 'parent.html' : 'student.html';
+  if (me.role === 'parent') document.getElementById('communityLink').style.display = '';
+
+  if (me.role === 'student' && !me.guardian_consent_at) {
+    contentEl.innerHTML = `
+      <div class="locked-box">
+        <div class="icon">🛡️</div>
+        <h2>학부모 승인을 기다리고 있어요</h2>
+        <p>학부모님이 계정을 승인하면 선생님께 상담을 남길 수 있어요.</p>
+      </div>`;
+    return;
+  }
+
+  const threadId = new URLSearchParams(location.search).get('t');
+  if (threadId) showThread(threadId); else showList();
+}
+
+async function showList() {
+  stopRealtime();
+  history.replaceState(null, '', 'consult.html');
+  contentEl.innerHTML = `
+    <h1>💬 선생님 상담</h1>
+    <p class="sub">여기에 남긴 질문은 <strong>선생님만</strong> 볼 수 있어요. 다른 학부모님이나 학생에게는 보이지 않습니다.</p>
+
+    <section class="lesson-box">
+      <h3>새 상담 남기기</h3>
+      <div class="form-group">
+        <label for="newSubject">제목</label>
+        <input id="newSubject" maxlength="100" placeholder="${me.role === 'parent' ? '예: 아이가 수학 숙제를 미뤄요' : '예: 영어 단어 외우는 방법이 궁금해요'}">
+      </div>
+      <div class="form-group">
+        <label for="newBody">내용</label>
+        <textarea id="newBody" rows="5" maxlength="3000" placeholder="궁금한 점이나 고민을 편하게 적어 주세요."></textarea>
+      </div>
+      <button class="btn-small" id="newBtn">상담 보내기</button>
+      <div class="talk-msg" id="newMsg"></div>
+    </section>
+
+    <h2 class="talk-h2">내 상담 목록</h2>
+    <div id="threadList"><div class="loading">불러오는 중...</div></div>
+  `;
+
+  document.getElementById('newBtn').addEventListener('click', createThread);
+  loadThreads();
+}
+
+async function loadThreads() {
+  const el = document.getElementById('threadList');
+  const { data, error } = await sb
+    .from('consult_threads')
+    .select('id, subject, status, created_at, last_message_at')
+    .eq('author_id', me.id)
+    .order('last_message_at', { ascending: false });
+
+  if (error) {
+    el.innerHTML = `<p class="empty-note">${talkSetupError(error)}</p>`;
+    return;
+  }
+  if (!data.length) {
+    el.innerHTML = '<p class="empty-note">아직 남긴 상담이 없어요.</p>';
+    return;
+  }
+  el.innerHTML = data.map(t => `
+    <a class="talk-row" href="consult.html?t=${t.id}" data-thread="${t.id}">
+      <div class="talk-row-main">
+        <div class="talk-row-title">${escapeHtml(t.subject)}</div>
+        <div class="hint">${talkTime(t.last_message_at)}</div>
+      </div>
+      ${talkStatusBadge(t.status, false)}
+    </a>`).join('');
+  el.querySelectorAll('[data-thread]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    showThread(a.dataset.thread);
+  }));
+}
+
+async function createThread() {
+  const subject = document.getElementById('newSubject').value.trim();
+  const body = document.getElementById('newBody').value.trim();
+  const msg = document.getElementById('newMsg');
+  if (!subject || !body) {
+    msg.textContent = '제목과 내용을 모두 적어 주세요.';
+    return;
+  }
+  const btn = document.getElementById('newBtn');
+  btn.disabled = true;
+  btn.textContent = '보내는 중...';
+
+  const { data: thread, error } = await sb
+    .from('consult_threads')
+    .insert({ subject, author_id: me.id })
+    .select('id')
+    .single();
+
+  if (error) {
+    msg.textContent = talkSetupError(error);
+    btn.disabled = false;
+    btn.textContent = '상담 보내기';
+    return;
+  }
+
+  const { error: msgError } = await sb
+    .from('consult_messages')
+    .insert({ thread_id: thread.id, sender_id: me.id, body });
+
+  if (msgError) {
+    msg.textContent = '내용을 저장하지 못했어요: ' + msgError.message;
+    btn.disabled = false;
+    btn.textContent = '상담 보내기';
+    return;
+  }
+  showThread(thread.id);
+}
+
+async function showThread(threadId) {
+  history.replaceState(null, '', 'consult.html?t=' + threadId);
+  contentEl.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const { data: thread, error } = await sb
+    .from('consult_threads')
+    .select('id, subject, status, created_at')
+    .eq('id', threadId)
+    .single();
+
+  if (error || !thread) {
+    contentEl.innerHTML = '<p class="empty-note">상담을 찾을 수 없어요.</p><button class="btn-small" id="backBtn">목록으로</button>';
+    document.getElementById('backBtn').addEventListener('click', showList);
+    return;
+  }
+
+  const closed = thread.status === 'closed';
+  contentEl.innerHTML = `
+    <button class="talk-back" id="backBtn">← 내 상담 목록</button>
+    <div class="talk-head">
+      <h1>${escapeHtml(thread.subject)}</h1>
+      ${talkStatusBadge(thread.status, false)}
+    </div>
+    <div class="talk-chat" id="chat"><div class="loading">불러오는 중...</div></div>
+    ${closed
+      ? '<p class="empty-note">선생님이 마무리한 상담이에요. 더 궁금한 점은 새 상담으로 남겨 주세요.</p>'
+      : `<div class="talk-compose">
+          <textarea id="replyBody" rows="3" maxlength="3000" placeholder="추가로 궁금한 점을 적어 주세요."></textarea>
+          <button class="btn-small" id="replyBtn">보내기</button>
+        </div>
+        <div class="talk-msg" id="replyMsg"></div>`}
+  `;
+  document.getElementById('backBtn').addEventListener('click', showList);
+
+  await loadMessages(threadId);
+
+  if (!closed) {
+    document.getElementById('replyBtn').addEventListener('click', () => sendReply(threadId));
+    startRealtime(threadId);
+  }
+}
+
+async function loadMessages(threadId) {
+  const chat = document.getElementById('chat');
+  if (!chat) return;
+  const { data, error } = await sb
+    .from('consult_messages')
+    .select('id, from_teacher, body, created_at')
+    .eq('thread_id', threadId)
+    .order('created_at');
+  if (error) {
+    chat.innerHTML = `<p class="empty-note">메시지를 불러오지 못했어요: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  chat.innerHTML = data.map(m => talkBubble({
+    mine: !m.from_teacher,
+    who: m.from_teacher ? '선생님' : '나',
+    body: m.body,
+    at: m.created_at,
+  })).join('') || '<p class="empty-note">아직 메시지가 없어요.</p>';
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendReply(threadId) {
+  const ta = document.getElementById('replyBody');
+  const body = ta.value.trim();
+  if (!body) return;
+  const btn = document.getElementById('replyBtn');
+  btn.disabled = true;
+  const { error } = await sb
+    .from('consult_messages')
+    .insert({ thread_id: threadId, sender_id: me.id, body });
+  btn.disabled = false;
+  if (error) {
+    document.getElementById('replyMsg').textContent = '보내지 못했어요: ' + error.message;
+    return;
+  }
+  ta.value = '';
+  loadMessages(threadId);
+}
+
+function startRealtime(threadId) {
+  stopRealtime();
+  channel = sb.channel('consult-' + threadId)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'consult_messages', filter: 'thread_id=eq.' + threadId },
+      () => loadMessages(threadId))
+    .subscribe();
+}
+
+function stopRealtime() {
+  if (channel) { sb.removeChannel(channel); channel = null; }
+}
+
+init();
+</script>
+</body>
+</html>
